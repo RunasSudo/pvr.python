@@ -17,6 +17,8 @@
  *
  */
 
+#include <Python.h>
+
 #include "client.h"
 #include "xbmc_pvr_dll.h"
 #include "PVRDemoData.h"
@@ -45,6 +47,8 @@ std::string g_strClientPath = "";
 CHelper_libXBMC_addon *XBMC = NULL;
 CHelper_libXBMC_pvr *PVR = NULL;
 
+PyThreadState* pyState;
+
 extern "C" {
 
 void ADDON_ReadSettings(void)
@@ -56,7 +60,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 {
 	if (!hdl || !props)
 		return ADDON_STATUS_UNKNOWN;
-		
+	
 	PVR_PROPERTIES* pvrprops = (PVR_PROPERTIES*)props;
 	
 	XBMC = new CHelper_libXBMC_addon;
@@ -75,6 +79,19 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 	}
 	
 	XBMC->Log(LOG_DEBUG, "%s - Creating the PVR demo add-on", __FUNCTION__);
+	
+	PyEval_AcquireLock();
+	pyState = Py_NewInterpreter();
+	PyThreadState_Swap(pyState);
+	
+	XBMC->Log(LOG_DEBUG, "%s - Initialised", __FUNCTION__);
+	PyRun_SimpleString("print 'PVR Python: Hello World!'\n");
+	XBMC->Log(LOG_DEBUG, "%s - Helloed", __FUNCTION__);
+	
+	Py_EndInterpreter(pyState);
+	PyThreadState_Swap(NULL);
+	PyEval_ReleaseLock();
+	XBMC->Log(LOG_DEBUG, "%s - Finalised", __FUNCTION__);
 	
 	m_CurStatus = ADDON_STATUS_UNKNOWN;
 	g_strUserPath = pvrprops->strUserPath;
