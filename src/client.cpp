@@ -56,6 +56,24 @@ void ADDON_ReadSettings(void)
 	//STUB
 }
 
+static PyObject* bridge_log(PyObject *self, PyObject *args)
+{
+	const char *s;
+	if (!PyArg_ParseTuple(args, "s", &s)) {
+		PyErr_SetString(PyExc_TypeError, "parameter must be a string");
+		return NULL;
+	}
+	
+	XBMC->Log(LOG_DEBUG, "%s - %s", __FUNCTION__, s);
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+static PyMethodDef bridgeMethods[] = {
+	{"log", bridge_log, METH_VARARGS, ""},
+	{NULL, NULL, 0, NULL}
+};
+
 ADDON_STATUS ADDON_Create(void* hdl, void* props)
 {
 	if (!hdl || !props)
@@ -84,9 +102,13 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 	pyState = Py_NewInterpreter();
 	PyThreadState_Swap(pyState);
 	
+	Py_InitModule("bridge", bridgeMethods);
+	
 	XBMC->Log(LOG_DEBUG, "%s - Initialised", __FUNCTION__);
 	PyRun_SimpleString("print 'PVR Python: Hello World!'\n");
 	XBMC->Log(LOG_DEBUG, "%s - Helloed", __FUNCTION__);
+	PyRun_SimpleString("import bridge\nbridge.log('Hello from Python!')\n");
+	XBMC->Log(LOG_DEBUG, "%s - Logged", __FUNCTION__);
 	
 	Py_EndInterpreter(pyState);
 	PyThreadState_Swap(NULL);
