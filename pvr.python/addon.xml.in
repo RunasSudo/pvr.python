@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<addon
+	id="pvr.python"
+	version="0.0.1.0"
+	name="PVR Python Client"
+	provider-name="RunasSudo">
+	<requires>
+		<c-pluff version="0.1"/>
+		<import addon="xbmc.pvr" version="5.2.1"/>
+	</requires>
+	<extension
+		point="xbmc.pvrclient"
+		library_@PLATFORM@="@LIBRARY_FILENAME@"/>
+	<extension point="xbmc.addon.metadata">
+		<summary lang="en_AU">Python PVR Client</summary>
+		<summary lang="en_GB">Python PVR Client</summary>
+		<summary lang="en_NZ">Python PVR Client</summary>
+		<summary lang="en_US">Python PVR Client</summary>
+		<platform>@PLATFORM@</platform>
+	</extension>
+</addon>

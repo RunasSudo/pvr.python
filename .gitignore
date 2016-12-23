@@ -1,0 +1,23 @@
+# build artifacts
+build/
+debian/changelog
+debian/files
+debian/kodi-pvr-demo-dbg.debhelper.log
+debian/kodi-pvr-demo-dbg.substvars
+debian/kodi-pvr-demo-dbg/
+debian/kodi-pvr-demo.debhelper.log
+debian/kodi-pvr-demo.postinst.debhelper
+debian/kodi-pvr-demo.postrm.debhelper
+debian/kodi-pvr-demo.substvars
+debian/kodi-pvr-demo/
+debian/tmp/
+obj-x86_64-linux-gnu/
+pvr.python/addon.xml
+
+# clion
+.idea/
+
+# Eclipse/CDT
+.cproject
+.project
+.settings/
