@@ -48,13 +48,11 @@ CHelper_libXBMC_addon *XBMC = NULL;
 CHelper_libXBMC_pvr *PVR = NULL;
 
 PyThreadState* pyState;
+PyObject* pyModule;
 
 extern "C" {
 
-void ADDON_ReadSettings(void)
-{
-	//STUB
-}
+// BEGIN PYTHON BRIDGE FUNCTIONS
 
 static PyObject* bridge_log(PyObject *self, PyObject *args)
 {
@@ -73,6 +71,13 @@ static PyMethodDef bridgeMethods[] = {
 	{"log", bridge_log, METH_VARARGS, ""},
 	{NULL, NULL, 0, NULL}
 };
+
+// END PYTHON BRIDGE FUNCTIONS
+
+void ADDON_ReadSettings(void)
+{
+	//STUB
+}
 
 ADDON_STATUS ADDON_Create(void* hdl, void* props)
 {
@@ -104,11 +109,35 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 	
 	Py_InitModule("bridge", bridgeMethods);
 	
-	XBMC->Log(LOG_DEBUG, "%s - Initialised", __FUNCTION__);
-	PyRun_SimpleString("print 'PVR Python: Hello World!'\n");
-	XBMC->Log(LOG_DEBUG, "%s - Helloed", __FUNCTION__);
-	PyRun_SimpleString("import bridge\nbridge.log('Hello from Python!')\n");
-	XBMC->Log(LOG_DEBUG, "%s - Logged", __FUNCTION__);
+	// Setup the path
+	PyObject* sysPath = PySys_GetObject((char*) "path");
+	PyObject* pyClientPath = PyString_FromString(pvrprops->strClientPath);
+	PyList_Append(sysPath, pyClientPath);
+	Py_DECREF(pyClientPath);
+	XBMC->Log(LOG_DEBUG, "%s - Added '%s' to sys.path", __FUNCTION__, pvrprops->strClientPath);
+	
+	// Import the module
+	PyObject* pyName = PyString_FromString("pvrimpl");
+	pyModule = PyImport_Import(pyName);
+	Py_DECREF(pyName);
+	
+	if (pyModule == NULL) {
+		XBMC->Log(LOG_DEBUG, "%s - Failed to import Python PVR implementation module 'pvrimpl'", __FUNCTION__);
+		SAFE_DELETE(PVR);
+		SAFE_DELETE(XBMC);
+		return ADDON_STATUS_PERMANENT_FAILURE;
+	}
+	
+	XBMC->Log(LOG_DEBUG, "%s - Handing over to Python", __FUNCTION__);
+	
+	// Call the function
+	PyObject* pyFunc = PyObject_GetAttrString(pyModule, "ADDON_Create");
+	PyObject* pyArgs = PyTuple_New(0);
+	PyObject* pyReturnValue = PyObject_CallObject(pyFunc, pyArgs);
+	long returnValue = PyInt_AsLong(pyReturnValue);
+	Py_DECREF(pyReturnValue);
+	Py_DECREF(pyArgs);
+	Py_DECREF(pyFunc);
 	
 	Py_EndInterpreter(pyState);
 	PyThreadState_Swap(NULL);
@@ -124,7 +153,10 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 	m_data = new PVRDemoData;
 	m_CurStatus = ADDON_STATUS_OK;
 	m_bCreated = true;
-	return m_CurStatus;
+	
+	// Process the return value
+	// Enums take on their integer indexes as value
+	return ((ADDON_STATUS) returnValue);
 }
 
 ADDON_STATUS ADDON_GetStatus()
