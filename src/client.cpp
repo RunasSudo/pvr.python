@@ -21,28 +21,10 @@
 
 #include "client.h"
 #include "xbmc_pvr_dll.h"
-#include "PVRDemoData.h"
 #include <p8-platform/util/util.h>
 
 using namespace std;
 using namespace ADDON;
-
-#ifdef TARGET_WINDOWS
-#define snprintf _snprintf
-#endif
-
-bool m_bCreated  = false;
-ADDON_STATUS  m_CurStatus = ADDON_STATUS_UNKNOWN;
-PVRDemoData *m_data = NULL;
-bool m_bIsPlaying  = false;
-PVRDemoChannel m_currentChannel;
-
-/* User adjustable settings are saved here.
- * Default values are defined inside client.h
- * and exported to the other source files.
- */
-std::string g_strUserPath = "";
-std::string g_strClientPath = "";
 
 CHelper_libXBMC_addon *XBMC = NULL;
 CHelper_libXBMC_pvr *PVR = NULL;
@@ -59,8 +41,26 @@ extern "C" {
 
 // BEGIN PYTHON->C BRIDGE FUNCTIONS
 
+long PyInt_AsLong_DR(PyObject* obj) {
+	long val = PyInt_AsLong(obj);
+	Py_DECREF(obj);
+	return val;
+}
+
 bool PyBool_AsBool(PyObject* obj) {
 	return (obj == Py_True);
+}
+
+bool PyBool_AsBool_DR(PyObject* obj) {
+	bool val = (obj == Py_True);
+	Py_DECREF(obj);
+	return val;
+}
+
+char* PyString_AsString_DR(PyObject* obj) {
+	char* val = PyString_AsString(obj);
+	Py_DECREF(obj);
+	return val;
 }
 
 static PyObject* bridge_XBMC_Log(PyObject* self, PyObject* args)
@@ -427,7 +427,8 @@ ADDON_STATUS ADDON_GetStatus()
 {
 	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
 	return (ADDON_STATUS)6;
-	return m_CurStatus;
+	
+	//return m_CurStatus;
 }
 
 void ADDON_Destroy()
@@ -437,9 +438,10 @@ void ADDON_Destroy()
 	Py_EndInterpreter(pyState);
 	PYTHON_UNLOCK();
 	return;
-	delete m_data;
-	m_bCreated = false;
-	m_CurStatus = ADDON_STATUS_UNKNOWN;
+	
+	//delete m_data;
+	//m_bCreated = false;
+	//m_CurStatus = ADDON_STATUS_UNKNOWN;
 }
 
 bool ADDON_HasSettings()
@@ -680,25 +682,25 @@ bool OpenLiveStream(const PVR_CHANNEL &channel)
 	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
 	return false;
 	
-	if (m_data)
-	{
-		CloseLiveStream();
-		
-		if (m_data->GetChannel(channel, m_currentChannel))
-		{
-			m_bIsPlaying = true;
-			return true;
-		}
-	}
-	
-	return false;
+	//if (m_data)
+	//{
+	//	CloseLiveStream();
+	//	
+	//	if (m_data->GetChannel(channel, m_currentChannel))
+	//	{
+	//		m_bIsPlaying = true;
+	//		return true;
+	//	}
+	//}
+	//
+	//return false;
 }
 
 void CloseLiveStream(void)
 {
 	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
 	
-	m_bIsPlaying = false;
+	//m_bIsPlaying = false;
 }
 
 bool SwitchChannel(const PVR_CHANNEL &channel)
@@ -721,10 +723,10 @@ int GetChannelGroupsAmount(void)
 	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
 	return -1;
 	
-	if (m_data)
-		return m_data->GetChannelGroupsAmount();
-	
-	return -1;
+	//if (m_data)
+	//	return m_data->GetChannelGroupsAmount();
+	//
+	//return -1;
 }
 
 PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
@@ -732,10 +734,10 @@ PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
 	return PVR_ERROR_NOT_IMPLEMENTED;
 	
-	snprintf(signalStatus.strAdapterName, sizeof(signalStatus.strAdapterName), "pvr demo adapter 1");
-	snprintf(signalStatus.strAdapterStatus, sizeof(signalStatus.strAdapterStatus), "OK");
-	
-	return PVR_ERROR_NO_ERROR;
+	//snprintf(signalStatus.strAdapterName, sizeof(signalStatus.strAdapterName), "pvr demo adapter 1");
+	//snprintf(signalStatus.strAdapterStatus, sizeof(signalStatus.strAdapterStatus), "OK");
+	//
+	//return PVR_ERROR_NO_ERROR;
 }
 
 /** UNUSED API FUNCTIONS */

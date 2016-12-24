@@ -22,8 +22,7 @@ set(DEPLIBS ${kodiplatform_LIBRARIES}
             ${p8-platform_LIBRARIES}
             ${PYTHON_LIBRARIES})
 
-set(PVRPYTHON_SOURCES src/client.cpp
-                      src/PVRDemoData.cpp)
+set(PVRPYTHON_SOURCES src/client.cpp)
 
 build_addon(pvr.python PVRPYTHON DEPLIBS)
 

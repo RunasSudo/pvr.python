@@ -6,7 +6,7 @@
 			<radio>0</radio>
 			<number>1</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/01.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/01.png</icon>
 			<stream>http://distribution.bbb3d.renderfarming.net/video/mp4/bbb_sunflower_1080p_30fps_normal.mp4</stream>
 		</channel>
 		<channel>
@@ -14,7 +14,7 @@
 			<radio>0</radio>
 			<number>2</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/02.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/02.png</icon>
 			<stream>http://distribution.bbb3d.renderfarming.net/video/mp4/bbb_sunflower_1080p_30fps_normal.mp4</stream>
 		</channel>
 		<channel>
@@ -22,7 +22,7 @@
 			<radio>0</radio>
 			<number>3</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/03.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/03.png</icon>
 			<stream>http://distribution.bbb3d.renderfarming.net/video/mp4/bbb_sunflower_1080p_30fps_normal.mp4</stream>
 		</channel>
 		<channel>
@@ -30,7 +30,7 @@
 			<radio>0</radio>
 			<number>4</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/04.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/04.png</icon>
 			<stream>http://distribution.bbb3d.renderfarming.net/video/mp4/bbb_sunflower_1080p_30fps_normal.mp4</stream>
 		</channel>
 		<channel>
@@ -38,7 +38,7 @@
 			<radio>0</radio>
 			<number>5</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/05.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/05.png</icon>
 			<stream>http://distribution.bbb3d.renderfarming.net/video/mp4/bbb_sunflower_1080p_30fps_normal.mp4</stream>
 		</channel>
 		<channel>
@@ -46,7 +46,7 @@
 			<radio>0</radio>
 			<number>6</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/06.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/06.png</icon>
 			<stream>http://distribution.bbb3d.renderfarming.net/video/mp4/bbb_sunflower_1080p_30fps_normal.mp4</stream>
 		</channel>
 		<channel>
@@ -54,7 +54,7 @@
 			<radio>0</radio>
 			<number>7</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/07.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/07.png</icon>
 			<stream>http://distribution.bbb3d.renderfarming.net/video/mp4/bbb_sunflower_1080p_30fps_normal.mp4</stream>
 		</channel>
 		<channel>
@@ -62,7 +62,7 @@
 			<radio>0</radio>
 			<number>8</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/08.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/08.png</icon>
 			<stream>http://distribution.bbb3d.renderfarming.net/video/mp4/bbb_sunflower_1080p_30fps_normal.mp4</stream>
 		</channel>
 		<channel>
@@ -70,7 +70,7 @@
 			<radio>0</radio>
 			<number>9</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/09.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/09.png</icon>
 			<stream>http://distribution.bbb3d.renderfarming.net/video/mp4/bbb_sunflower_1080p_30fps_normal.mp4</stream>
 		</channel>
 		<channel>
@@ -78,7 +78,7 @@
 			<radio>0</radio>
 			<number>10</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/10.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/10.png</icon>
 			<stream>http://distribution.bbb3d.renderfarming.net/video/mp4/bbb_sunflower_1080p_30fps_normal.mp4</stream>
 		</channel>
 		<channel>
@@ -86,7 +86,7 @@
 			<radio>0</radio>
 			<number>11</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/11.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/11.png</icon>
 			<stream>http://distribution.bbb3d.renderfarming.net/video/mp4/bbb_sunflower_1080p_30fps_normal.mp4</stream>
 		</channel>
 
@@ -96,7 +96,7 @@
 			<radio>1</radio>
 			<number>1</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/01.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/01.png</icon>
 			<stream></stream>
 		</channel>
 		<channel>
@@ -104,7 +104,7 @@
 			<radio>1</radio>
 			<number>2</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/02.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/02.png</icon>
 			<stream></stream>
 		</channel>
 		<channel>
@@ -112,7 +112,7 @@
 			<radio>1</radio>
 			<number>3</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/03.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/03.png</icon>
 			<stream></stream>
 		</channel>
 		<channel>
@@ -120,7 +120,7 @@
 			<radio>1</radio>
 			<number>4</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/04.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/04.png</icon>
 			<stream></stream>
 		</channel>
 		<channel>
@@ -128,7 +128,7 @@
 			<radio>1</radio>
 			<number>5</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/05.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/05.png</icon>
 			<stream></stream>
 		</channel>
 		<channel>
@@ -136,7 +136,7 @@
 			<radio>1</radio>
 			<number>6</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/06.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/06.png</icon>
 			<stream></stream>
 		</channel>
 		<channel>
@@ -144,7 +144,7 @@
 			<radio>1</radio>
 			<number>7</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/07.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/07.png</icon>
 			<stream></stream>
 		</channel>
 		<channel>
@@ -152,7 +152,7 @@
 			<radio>1</radio>
 			<number>8</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/08.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/08.png</icon>
 			<stream></stream>
 		</channel>
 		<channel>
@@ -160,7 +160,7 @@
 			<radio>1</radio>
 			<number>9</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/09.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/09.png</icon>
 			<stream></stream>
 		</channel>
 		<channel>
@@ -168,7 +168,7 @@
 			<radio>1</radio>
 			<number>10</number>
 			<encryption>0</encryption>
-			<icon>special://xbmc/addons/pvr.demo/data/10.png</icon>
+			<icon>special://xbmc/addons/pvr.python/demo-data/10.png</icon>
 			<stream></stream>
 		</channel>
 
