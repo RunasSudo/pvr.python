@@ -216,6 +216,50 @@ static PyObject* bridge_PVR_TransferRecordingEntry(PyObject* self, PyObject* arg
 	return Py_None;
 }
 
+static PyObject* bridge_PVR_TransferEpgEntry(PyObject* self, PyObject* args)
+{
+	PyObject* pyEntry = PyTuple_GetItem(args, 0);
+	
+	EPG_TAG xbmcEntry;
+	memset(&xbmcEntry, 0, sizeof(EPG_TAG));
+	
+	XBMC->Log(LOG_DEBUG, "%s - ABC", __FUNCTION__);
+	
+	xbmcEntry.iUniqueBroadcastId = PyInt_AsLong(PyDict_GetItemString(pyEntry, "uniqueBroadcastId"));
+	xbmcEntry.strTitle = PyString_AsString(PyDict_GetItemString(pyEntry, "title"));
+	xbmcEntry.iChannelNumber = PyInt_AsLong(PyDict_GetItemString(pyEntry, "channelNumber"));
+	xbmcEntry.startTime = PyInt_AsLong(PyDict_GetItemString(pyEntry, "startTime"));
+	xbmcEntry.endTime = PyInt_AsLong(PyDict_GetItemString(pyEntry, "endTime"));
+	xbmcEntry.strPlotOutline = PyString_AsString(PyDict_GetItemString(pyEntry, "plotOutline"));
+	xbmcEntry.strPlot = PyString_AsString(PyDict_GetItemString(pyEntry, "plot"));
+	xbmcEntry.strOriginalTitle = PyString_AsString(PyDict_GetItemString(pyEntry, "originalTitle"));
+	xbmcEntry.strCast = PyString_AsString(PyDict_GetItemString(pyEntry, "cast"));
+	xbmcEntry.strDirector = PyString_AsString(PyDict_GetItemString(pyEntry, "director"));
+	xbmcEntry.strWriter = PyString_AsString(PyDict_GetItemString(pyEntry, "writer"));
+	xbmcEntry.iYear = PyInt_AsLong(PyDict_GetItemString(pyEntry, "year"));
+	xbmcEntry.strIMDBNumber = PyString_AsString(PyDict_GetItemString(pyEntry, "IMDBNumber"));
+	xbmcEntry.strIconPath = PyString_AsString(PyDict_GetItemString(pyEntry, "iconPath"));
+	xbmcEntry.iGenreType = PyInt_AsLong(PyDict_GetItemString(pyEntry, "genreType"));
+	xbmcEntry.iGenreSubType = PyInt_AsLong(PyDict_GetItemString(pyEntry, "genreSubType"));
+	xbmcEntry.strGenreDescription = PyString_AsString(PyDict_GetItemString(pyEntry, "genreDescription"));
+	xbmcEntry.firstAired = PyInt_AsLong(PyDict_GetItemString(pyEntry, "firstAired"));
+	xbmcEntry.iParentalRating = PyInt_AsLong(PyDict_GetItemString(pyEntry, "parentalRating"));
+	xbmcEntry.iStarRating = PyInt_AsLong(PyDict_GetItemString(pyEntry, "starRating"));
+	xbmcEntry.bNotify = PyBool_AsBool(PyDict_GetItemString(pyEntry, "notify"));
+	xbmcEntry.iSeriesNumber = PyInt_AsLong(PyDict_GetItemString(pyEntry, "seriesNumber"));
+	xbmcEntry.iEpisodeNumber = PyInt_AsLong(PyDict_GetItemString(pyEntry, "episodeNumber"));
+	xbmcEntry.iEpisodePartNumber = PyInt_AsLong(PyDict_GetItemString(pyEntry, "episodePartNumber"));
+	xbmcEntry.strEpisodeName = PyString_AsString(PyDict_GetItemString(pyEntry, "episodeName"));
+	xbmcEntry.iFlags = PyInt_AsLong(PyDict_GetItemString(pyEntry, "flags"));
+	
+	PVR->TransferEpgEntry(addon_handle, &xbmcEntry);
+	
+	XBMC->Log(LOG_DEBUG, "%s - DEF", __FUNCTION__);
+	
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
 static PyMethodDef bridgeMethods[] = {
 	{"XBMC_Log", bridge_XBMC_Log, METH_VARARGS, ""},
 	{"PVR_TransferChannelEntry", bridge_PVR_TransferChannelEntry, METH_VARARGS, ""},
@@ -223,6 +267,7 @@ static PyMethodDef bridgeMethods[] = {
 	{"PVR_TransferChannelGroupMember", bridge_PVR_TransferChannelGroupMember, METH_VARARGS, ""},
 	{"PVR_TransferTimerEntry", bridge_PVR_TransferTimerEntry, METH_VARARGS, ""},
 	{"PVR_TransferRecordingEntry", bridge_PVR_TransferRecordingEntry, METH_VARARGS, ""},
+	{"PVR_TransferEpgEntry", bridge_PVR_TransferEpgEntry, METH_VARARGS, ""},
 	{NULL, NULL, 0, NULL}
 };
 
@@ -512,7 +557,7 @@ PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, const PVR_CHANNEL_GROUP &g
 	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
 	addon_handle = handle;
-	return pyCallPVRError(pvrImpl, "GetChannelGroupMembers", Py_BuildValue("({s:s, s:b, s:i})", "groupName", group.strGroupName, "isRadio", group.bIsRadio, "position", group.iPosition));
+	return pyCallPVRError(pvrImpl, "GetChannelGroupMembers", Py_BuildValue("(s)", group.strGroupName));
 }
 
 PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int *size)
@@ -580,6 +625,14 @@ int GetRecordingsAmount(bool deleted)
 	return pyCallInt(pvrImpl, "GetRecordingsAmount", Py_BuildValue("(b)", deleted));
 }
 
+PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &channel, time_t iStart, time_t iEnd)
+{
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	
+	addon_handle = handle;
+	return pyCallPVRError(pvrImpl, "GetEPGForChannel", Py_BuildValue("(i, i, i)", channel.iUniqueId, iStart, iEnd));
+}
+
 void OnSystemSleep()
 {
 	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
@@ -620,17 +673,6 @@ const char* GetGUIAPIVersion(void)
 const char* GetMininumGUIAPIVersion(void)
 {
 	return ""; // GUI API not used
-}
-
-PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &channel, time_t iStart, time_t iEnd)
-{
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
-	return PVR_ERROR_NOT_IMPLEMENTED;
-	
-	if (m_data)
-		return m_data->GetEPGForChannel(handle, channel, iStart, iEnd);
-	
-	return PVR_ERROR_SERVER_ERROR;
 }
 
 bool OpenLiveStream(const PVR_CHANNEL &channel)

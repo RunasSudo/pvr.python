@@ -76,7 +76,7 @@ class DemoPVRImpl:
 		
 		# Timers
 		self.timers = []
-		today = datetime.datetime.utcnow()
+		today = datetime.datetime.now()
 		for timerTag in root.find('timers').findall('timer'):
 			if timerTag.find('starttime') is not None and timerTag.find('starttime').text is not None:
 				startTimeTime = datetime.datetime.strptime(timerTag.find('starttime').text, '%H:%M')
@@ -163,6 +163,52 @@ class DemoPVRImpl:
 			processRecording(recordingTag, False)
 		for recordingTag in root.find('recordingsdeleted').findall('recording'):
 			processRecording(recordingTag, True)
+		
+		# EPG
+		self.epg = []
+		for entryTag in root.find('epg').findall('entry'):
+			if entryTag.find('start') is not None and entryTag.find('start').text is not None:
+				startTimeDelta = datetime.timedelta(seconds=int(entryTag.find('start').text))
+				startTimeDT = today + startTimeDelta
+				startTime = time.mktime(startTimeDT.timetuple())
+			else:
+				startTime = 0
+			
+			if entryTag.find('end') is not None and entryTag.find('end').text is not None:
+				endTimeDelta = datetime.timedelta(seconds=int(entryTag.find('end').text))
+				endTimeDT = today + endTimeDelta
+				endTime = time.mktime(endTimeDT.timetuple())
+			else:
+				endTime = 0
+			
+			self.epg.append({
+				'uniqueBroadcastId': int(entryTag.find('broadcastid').text),
+				'title': textDef(entryTag.find('title'), ''),
+				'channelNumber': int(textDef(entryTag.find('channelid'), 0)),
+				'startTime': startTime,
+				'endTime': endTime,
+				'plotOutline': textDef(entryTag.find('plotoutline'), ''),
+				'plot': textDef(entryTag.find('plot'), ''),
+				'originalTitle': '',
+				'cast': '',
+				'director': '',
+				'writer': '',
+				'year': 0,
+				'IMDBNumber': '',
+				'iconPath': textDef(entryTag.find('icon'), ''),
+				'genreType': int(textDef(entryTag.find('genretype'), 0)),
+				'genreSubType': int(textDef(entryTag.find('genresubtype'), 0)),
+				'genreDescription': '',
+				'firstAired': 0,
+				'parentalRating': 0,
+				'starRating': 0,
+				'notify': False,
+				'seriesNumber': 0,
+				'episodeNumber': 0,
+				'episodePartNumber': 0,
+				'episodeName': '',
+				'flags': 0
+			})
 	
 	def GetAddonCapabilities(self):
 		return libpvr.PVR_ERROR.NO_ERROR, {
@@ -201,10 +247,10 @@ class DemoPVRImpl:
 		
 		return libpvr.PVR_ERROR.NO_ERROR
 	
-	def GetChannelGroupMembers(self, group):
-		for theGroup in self.channelGroups:
-			if theGroup['groupName'] == group['groupName']:
-				for member in theGroup['members']:
+	def GetChannelGroupMembers(self, groupName):
+		for group in self.channelGroups:
+			if group['groupName'] == groupName:
+				for member in group['members']:
 					bridge.PVR_TransferChannelGroupMember(member)
 		
 		return libpvr.PVR_ERROR.NO_ERROR
@@ -233,3 +279,11 @@ class DemoPVRImpl:
 	
 	def GetRecordingsAmount(self, deleted):
 		return len([x for x in self.recordings if x['isDeleted'] == deleted])
+	
+	def GetEPGForChannel(self, channelId, startTime, endTime):
+		for entry in self.epg:
+			if entry['channelNumber'] == channelId:
+				if entry['endTime'] >= startTime and entry['startTime'] <= endTime:
+					bridge.PVR_TransferEpgEntry(entry)
+		
+		return libpvr.PVR_ERROR.NO_ERROR
