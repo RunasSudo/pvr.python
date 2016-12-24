@@ -135,11 +135,52 @@ static PyObject* bridge_PVR_TransferChannelGroupMember(PyObject* self, PyObject*
 	return Py_None;
 }
 
+static PyObject* bridge_PVR_TransferTimerEntry(PyObject* self, PyObject* args)
+{
+	PyObject* pyEntry = PyTuple_GetItem(args, 0);
+	
+	PVR_TIMER xbmcEntry;
+	memset(&xbmcEntry, 0, sizeof(PVR_TIMER));
+	
+	xbmcEntry.iClientIndex = PyInt_AsLong(PyDict_GetItemString(pyEntry, "clientIndex"));
+	xbmcEntry.iParentClientIndex = PyInt_AsLong(PyDict_GetItemString(pyEntry, "parentClientIndex"));
+	xbmcEntry.iClientChannelUid = PyInt_AsLong(PyDict_GetItemString(pyEntry, "clientChannelUid"));
+	xbmcEntry.startTime = PyInt_AsLong(PyDict_GetItemString(pyEntry, "startTime"));
+	xbmcEntry.endTime = PyInt_AsLong(PyDict_GetItemString(pyEntry, "endTime"));
+	xbmcEntry.bStartAnyTime = PyBool_AsBool(PyDict_GetItemString(pyEntry, "startAnyTime"));
+	xbmcEntry.bEndAnyTime = PyBool_AsBool(PyDict_GetItemString(pyEntry, "endAnyTime"));
+	xbmcEntry.state = (PVR_TIMER_STATE) PyInt_AsLong(PyDict_GetItemString(pyEntry, "state"));
+	xbmcEntry.iTimerType = PyInt_AsLong(PyDict_GetItemString(pyEntry, "timerType"));
+	strcpy(xbmcEntry.strTitle, PyString_AsString(PyDict_GetItemString(pyEntry, "title")));
+	strcpy(xbmcEntry.strEpgSearchString, PyString_AsString(PyDict_GetItemString(pyEntry, "epgSearchString")));
+	xbmcEntry.bFullTextEpgSearch = PyBool_AsBool(PyDict_GetItemString(pyEntry, "fullTextEpgSearch"));
+	strcpy(xbmcEntry.strDirectory, PyString_AsString(PyDict_GetItemString(pyEntry, "directory")));
+	strcpy(xbmcEntry.strSummary, PyString_AsString(PyDict_GetItemString(pyEntry, "summary")));
+	xbmcEntry.iPriority = PyInt_AsLong(PyDict_GetItemString(pyEntry, "priority"));
+	xbmcEntry.iLifetime = PyInt_AsLong(PyDict_GetItemString(pyEntry, "lifetime"));
+	xbmcEntry.iMaxRecordings = PyInt_AsLong(PyDict_GetItemString(pyEntry, "maxRecordings"));
+	xbmcEntry.iRecordingGroup = PyInt_AsLong(PyDict_GetItemString(pyEntry, "recordingGroup"));
+	xbmcEntry.firstDay = PyInt_AsLong(PyDict_GetItemString(pyEntry, "firstDay"));
+	xbmcEntry.iWeekdays = PyInt_AsLong(PyDict_GetItemString(pyEntry, "weekdays"));
+	xbmcEntry.iPreventDuplicateEpisodes = PyInt_AsLong(PyDict_GetItemString(pyEntry, "preventDuplicateEpisodes"));
+	xbmcEntry.iEpgUid = PyInt_AsLong(PyDict_GetItemString(pyEntry, "epgUid"));
+	xbmcEntry.iMarginStart = PyInt_AsLong(PyDict_GetItemString(pyEntry, "marginStart"));
+	xbmcEntry.iMarginEnd = PyInt_AsLong(PyDict_GetItemString(pyEntry, "marginEnd"));
+	xbmcEntry.iGenreType = PyInt_AsLong(PyDict_GetItemString(pyEntry, "genreType"));
+	xbmcEntry.iGenreSubType = PyInt_AsLong(PyDict_GetItemString(pyEntry, "genreSubType"));
+	
+	PVR->TransferTimerEntry(addon_handle, &xbmcEntry);
+	
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
 static PyMethodDef bridgeMethods[] = {
 	{"XBMC_Log", bridge_XBMC_Log, METH_VARARGS, ""},
 	{"PVR_TransferChannelEntry", bridge_PVR_TransferChannelEntry, METH_VARARGS, ""},
 	{"PVR_TransferChannelGroup", bridge_PVR_TransferChannelGroup, METH_VARARGS, ""},
 	{"PVR_TransferChannelGroupMember", bridge_PVR_TransferChannelGroupMember, METH_VARARGS, ""},
+	{"PVR_TransferTimerEntry", bridge_PVR_TransferTimerEntry, METH_VARARGS, ""},
 	{NULL, NULL, 0, NULL}
 };
 
@@ -410,6 +451,15 @@ PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, const PVR_CHANNEL_GROUP &g
 	return pyCallPVRError(pvrImpl, "GetChannelGroupMembers", Py_BuildValue("({s:s, s:b, s:i})", "groupName", group.strGroupName, "isRadio", group.bIsRadio, "position", group.iPosition));
 }
 
+PVR_ERROR GetTimers(ADDON_HANDLE handle)
+{
+	XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	
+	addon_handle = handle;
+	/* TODO: Change implementation to get support for the timer features introduced with PVR API 1.9.7 */
+	return pyCallPVRError(pvrImpl, "GetTimers", NULL);
+}
+
 void OnSystemSleep()
 {
 	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
@@ -586,18 +636,6 @@ int GetTimersAmount(void)
 		return m_data->GetTimersAmount();
 	
 	return -1;
-}
-
-PVR_ERROR GetTimers(ADDON_HANDLE handle)
-{
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
-	return PVR_ERROR_NOT_IMPLEMENTED;
-	
-	if (m_data)
-		return m_data->GetTimers(handle);
-	
-	/* TODO: Change implementation to get support for the timer features introduced with PVR API 1.9.7 */
-	return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
 /** UNUSED API FUNCTIONS */

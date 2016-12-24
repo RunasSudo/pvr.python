@@ -18,7 +18,9 @@
 import libpvr
 import bridge
 
+import datetime
 import os
+import time
 import xml.etree.ElementTree as ET
 
 def getInstance():
@@ -71,6 +73,54 @@ class DemoPVRImpl:
 						'channelNumber': i + 1
 					} for i, memberTag in enumerate(groupTag.find('members').findall('member'))] # Not passed at group stage
 			})
+		
+		# Timers
+		self.timers = []
+		for timerTag in root.find('timers').findall('timer'):
+			today = datetime.datetime.utcnow()
+			
+			if timerTag.find('starttime') is not None and timerTag.find('starttime').text is not None:
+				startTimeTime = datetime.datetime.strptime(timerTag.find('starttime').text, '%H:%M')
+				startTimeDT = datetime.datetime.combine(today.date(), startTimeTime.time())
+				startTime = time.mktime(startTimeDT.timetuple())
+			else:
+				startTime = 0
+			
+			if timerTag.find('endtime') is not None and timerTag.find('endtime').text is not None:
+				endTimeTime = datetime.datetime.strptime(timerTag.find('endtime').text, '%H:%M')
+				endTimeDT = datetime.datetime.combine(today.date(), startTimeTime.time())
+				endTime = time.mktime(startTimeDT.timetuple())
+			else:
+				endTime = 0
+			
+			self.timers.append({
+				'clientIndex': len(self.timers) + 1,
+				'parentClientIndex': 0,
+				'clientChannelUid': int(textDef(timerTag.find('channelid'), 0)),
+				'startTime': startTime,
+				'endTime': endTime,
+				'startAnyTime': False,
+				'endAnyTime': False,
+				'state': int(textDef(timerTag.find('state'), 0)),
+				'timerType': 0,
+				'title': textDef(timerTag.find('title'), ''),
+				'epgSearchString': '',
+				'fullTextEpgSearch': False,
+				'directory': '',
+				'summary': textDef(timerTag.find('summary'), ''),
+				'priority': 0,
+				'lifetime': 0,
+				'maxRecordings': 0,
+				'recordingGroup': 0,
+				'firstDay': 0,
+				'weekdays': 0,
+				'preventDuplicateEpisodes': 0,
+				'epgUid': 0,
+				'marginStart': 0,
+				'marginEnd': 0,
+				'genreType': 0,
+				'genreSubType': 0
+			})
 	
 	def GetAddonCapabilities(self):
 		return libpvr.PVR_ERROR.NO_ERROR, {
@@ -114,5 +164,11 @@ class DemoPVRImpl:
 			if theGroup['groupName'] == group['groupName']:
 				for member in theGroup['members']:
 					bridge.PVR_TransferChannelGroupMember(member)
+		
+		return libpvr.PVR_ERROR.NO_ERROR
+	
+	def GetTimers(self):
+		for timer in self.timers:
+			bridge.PVR_TransferTimerEntry(timer)
 		
 		return libpvr.PVR_ERROR.NO_ERROR
