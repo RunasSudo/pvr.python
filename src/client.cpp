@@ -72,6 +72,7 @@ static PyObject* bridge_XBMC_Log(PyObject* self, PyObject* args)
 	}
 	
 	XBMC->Log(LOG_DEBUG, "%s - %s", __FUNCTION__, s);
+	
 	Py_INCREF(Py_None);
 	return Py_None;
 }
@@ -97,19 +98,54 @@ static PyObject* bridge_PVR_TransferChannelEntry(PyObject* self, PyObject* args)
 	PVR->TransferChannelEntry(addon_handle, &xbmcChannel);
 	
 	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+static PyObject* bridge_PVR_TransferChannelGroup(PyObject* self, PyObject* args)
+{
+	PyObject* pyGroup = PyTuple_GetItem(args, 0);
 	
+	PVR_CHANNEL_GROUP xbmcGroup;
+	memset(&xbmcGroup, 0, sizeof(PVR_CHANNEL_GROUP));
+	
+	strcpy(xbmcGroup.strGroupName, PyString_AsString(PyDict_GetItemString(pyGroup, "groupName")));
+	xbmcGroup.bIsRadio = PyBool_AsBool(PyDict_GetItemString(pyGroup, "isRadio"));
+	xbmcGroup.iPosition = PyInt_AsLong(PyDict_GetItemString(pyGroup, "position"));
+	
+	PVR->TransferChannelGroup(addon_handle, &xbmcGroup);
+	
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
+static PyObject* bridge_PVR_TransferChannelGroupMember(PyObject* self, PyObject* args)
+{
+	PyObject* pyGroupMember = PyTuple_GetItem(args, 0);
+	
+	PVR_CHANNEL_GROUP_MEMBER xbmcGroupMember;
+	memset(&xbmcGroupMember, 0, sizeof(PVR_CHANNEL_GROUP_MEMBER));
+	
+	strcpy(xbmcGroupMember.strGroupName, PyString_AsString(PyDict_GetItemString(pyGroupMember, "groupName")));
+	xbmcGroupMember.iChannelUniqueId = PyInt_AsLong(PyDict_GetItemString(pyGroupMember, "channelUniqueId"));
+	xbmcGroupMember.iChannelNumber = PyInt_AsLong(PyDict_GetItemString(pyGroupMember, "channelNumber"));
+	
+	PVR->TransferChannelGroupMember(addon_handle, &xbmcGroupMember);
+	
+	Py_INCREF(Py_None);
 	return Py_None;
 }
 
 static PyMethodDef bridgeMethods[] = {
 	{"XBMC_Log", bridge_XBMC_Log, METH_VARARGS, ""},
 	{"PVR_TransferChannelEntry", bridge_PVR_TransferChannelEntry, METH_VARARGS, ""},
+	{"PVR_TransferChannelGroup", bridge_PVR_TransferChannelGroup, METH_VARARGS, ""},
+	{"PVR_TransferChannelGroupMember", bridge_PVR_TransferChannelGroupMember, METH_VARARGS, ""},
 	{NULL, NULL, 0, NULL}
 };
 
 // BEGIN C->PYTHON HELPER FUNCTIONS
 
-char* pyCallString(PyObject* obj, const char* func, PyObject* args) {
+const char* pyCallString(PyObject* obj, const char* func, PyObject* args) {
 	PYTHON_LOCK();
 	
 	PyObject* pyFunc = PyObject_GetAttrString(obj, func);
@@ -118,6 +154,7 @@ char* pyCallString(PyObject* obj, const char* func, PyObject* args) {
 		pyArgs = PyTuple_New(0);
 	}
 	PyObject* pyReturnValue = PyObject_CallObject(pyFunc, pyArgs);
+	if (PyErr_Occurred() != NULL) { PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return ""; }
 	char* returnValue = PyString_AsString(pyReturnValue);
 	Py_DECREF(pyReturnValue);
 	if (args == NULL) {
@@ -128,6 +165,28 @@ char* pyCallString(PyObject* obj, const char* func, PyObject* args) {
 	PYTHON_UNLOCK();
 	
 	return returnValue;
+}
+
+PVR_ERROR pyCallPVRError(PyObject* obj, const char* func, PyObject* args) {
+	PYTHON_LOCK();
+	
+	PyObject* pyFunc = PyObject_GetAttrString(pvrImpl, func);
+	PyObject* pyArgs = args;
+	if (args == NULL) {
+		pyArgs = PyTuple_New(0);
+	}
+	PyObject* pyReturnValue = PyObject_CallObject(pyFunc, pyArgs);
+	if (PyErr_Occurred() != NULL) { PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return PVR_ERROR_FAILED; }
+	long returnValue = PyInt_AsLong(pyReturnValue);
+	Py_DECREF(pyReturnValue);
+	if (args == NULL) {
+		Py_DECREF(pyArgs);
+	}
+	Py_DECREF(pyFunc);
+	
+	PYTHON_UNLOCK();
+	
+	return ((PVR_ERROR) returnValue);
 }
 
 // END PYTHON<->C FUNCTIONS
@@ -192,6 +251,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 	PyObject* pyFunc = PyObject_GetAttrString(pyModule, "getInstance");
 	PyObject* pyArgs = PyTuple_New(0);
 	pvrImpl = PyObject_CallObject(pyFunc, pyArgs);
+	if (PyErr_Occurred() != NULL) { PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return ADDON_STATUS_PERMANENT_FAILURE; }
 	Py_DECREF(pyArgs);
 	Py_DECREF(pyFunc);
 	
@@ -199,6 +259,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 	pyFunc = PyObject_GetAttrString(pvrImpl, "ADDON_Create");
 	pyArgs = Py_BuildValue("({s:s, s:s, s:i})", "userPath", pvrprops->strUserPath, "clientPath", pvrprops->strClientPath, "epgMaxDays", pvrprops->iEpgMaxDays);
 	PyObject* pyReturnValue = PyObject_CallObject(pyFunc, pyArgs);
+	if (PyErr_Occurred() != NULL) { PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return ADDON_STATUS_PERMANENT_FAILURE; }
 	long returnValue = PyInt_AsLong(pyReturnValue);
 	Py_DECREF(pyReturnValue);
 	Py_DECREF(pyArgs);
@@ -272,6 +333,7 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 	PyObject* pyFunc = PyObject_GetAttrString(pvrImpl, "GetAddonCapabilities");
 	PyObject* pyArgs = PyTuple_New(0);
 	PyObject* pyReturnValue = PyObject_CallObject(pyFunc, pyArgs);
+	if (PyErr_Occurred() != NULL) { PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return PVR_ERROR_FAILED; }
 	
 	PyObject* pyCapabilities = PyTuple_GetItem(pyReturnValue, 1);
 	pCapabilities->bSupportsEPG = (PyDict_GetItemString(pyCapabilities, "supportsEPG") == Py_True);
@@ -329,20 +391,23 @@ PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio)
 	XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
 	addon_handle = handle;
+	return pyCallPVRError(pvrImpl, "GetChannels", Py_BuildValue("(b)", bRadio));
+}
+
+PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
+{
+	XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
-	PYTHON_LOCK();
+	addon_handle = handle;
+	return pyCallPVRError(pvrImpl, "GetChannelGroups", Py_BuildValue("(b)", bRadio));
+}
+
+PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, const PVR_CHANNEL_GROUP &group)
+{
+	XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
-	PyObject* pyFunc = PyObject_GetAttrString(pvrImpl, "GetChannels");
-	PyObject* pyArgs = Py_BuildValue("(b)", bRadio); //TODO: Process handle
-	PyObject* pyReturnValue = PyObject_CallObject(pyFunc, pyArgs);
-	long returnValue = PyInt_AsLong(pyReturnValue);
-	Py_DECREF(pyReturnValue);
-	Py_DECREF(pyArgs);
-	Py_DECREF(pyFunc);
-	
-	PYTHON_UNLOCK();
-	
-	return ((PVR_ERROR) returnValue);
+	addon_handle = handle;
+	return pyCallPVRError(pvrImpl, "GetChannelGroupMembers", Py_BuildValue("({s:s, s:b, s:i})", "groupName", group.strGroupName, "isRadio", group.bIsRadio, "position", group.iPosition));
 }
 
 void OnSystemSleep()
@@ -468,28 +533,6 @@ int GetChannelGroupsAmount(void)
 		return m_data->GetChannelGroupsAmount();
 	
 	return -1;
-}
-
-PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
-{
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
-	return PVR_ERROR_NOT_IMPLEMENTED;
-	
-	if (m_data)
-		return m_data->GetChannelGroups(handle, bRadio);
-	
-	return PVR_ERROR_SERVER_ERROR;
-}
-
-PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, const PVR_CHANNEL_GROUP &group)
-{
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
-	return PVR_ERROR_NOT_IMPLEMENTED;
-	
-	if (m_data)
-		return m_data->GetChannelGroupMembers(handle, group);
-	
-	return PVR_ERROR_SERVER_ERROR;
 }
 
 PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)

@@ -34,19 +34,42 @@ class DemoPVRImpl:
 		tree = ET.parse(os.path.join(props['clientPath'], 'PVRDemoAddonSettings.xml'))
 		root = tree.getroot()
 		
+		def textDef(tag, default):
+			if tag is None:
+				return default
+			if tag.text is None:
+				return default
+			return tag.text
+		
+		# Channels
 		self.channels = []
 		for channelTag in root.find('channels').findall('channel'):
 			self.channels.append({
 				'uniqueId': len(self.channels) + 1,
-				'isRadio': channelTag.find('radio').text == '1',
-				'channelNumber': int(channelTag.find('number').text or '0'),
+				'isRadio': textDef(channelTag.find('radio'), 0) == '1',
+				'channelNumber': int(textDef(channelTag.find('number'), 0)),
 				'subChannelNumber': 0,
-				'channelName': channelTag.find('name').text or '',
+				'channelName': textDef(channelTag.find('name'), ''),
 				'inputFormat': '',
-				'streamURL': channelTag.find('stream').text or '',
-				'encryptionSystem': int(channelTag.find('encryption').text or 0),
-				'iconPath': channelTag.find('icon').text or '',
+				'streamURL': textDef(channelTag.find('stream'), ''),
+				'encryptionSystem': int(textDef(channelTag.find('encryption'), 0)),
+				'iconPath': textDef(channelTag.find('icon'), ''),
 				'isHidden': False
+			})
+		
+		# Channel groups
+		self.channelGroups = []
+		for groupTag in root.find('channelgroups').findall('group'):
+			self.channelGroups.append({
+				'groupName': textDef(groupTag.find('name'), ''),
+				'isRadio': textDef(groupTag.find('radio'), 0) == '1',
+				'position': int(textDef(groupTag.find('position'), 0)),
+				'members': [
+					{
+						'groupName': textDef(groupTag.find('name'), ''),
+						'channelUniqueId': int(textDef(memberTag, 0)),
+						'channelNumber': i + 1
+					} for i, memberTag in enumerate(groupTag.find('members').findall('member'))] # Not passed at group stage
 			})
 	
 	def GetAddonCapabilities(self):
@@ -76,5 +99,20 @@ class DemoPVRImpl:
 		for channel in self.channels:
 			if channel['isRadio'] == radio:
 				bridge.PVR_TransferChannelEntry(channel)
+		
+		return libpvr.PVR_ERROR.NO_ERROR
+	
+	def GetChannelGroups(self, radio):
+		for group in self.channelGroups:
+			if group['isRadio'] == radio:
+				bridge.PVR_TransferChannelGroup(group)
+		
+		return libpvr.PVR_ERROR.NO_ERROR
+	
+	def GetChannelGroupMembers(self, group):
+		for theGroup in self.channelGroups:
+			if theGroup['groupName'] == group['groupName']:
+				for member in theGroup['members']:
+					bridge.PVR_TransferChannelGroupMember(member)
 		
 		return libpvr.PVR_ERROR.NO_ERROR

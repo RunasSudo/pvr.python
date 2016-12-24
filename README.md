@@ -9,6 +9,11 @@ A PVR client supporting Python scripting for [Kodi](http://kodi.tv)
 2. `cmake -DADDONS_TO_BUILD=pvr.python -DADDON_SRC_PREFIX=../.. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/path/to/xbmc/addons -DPACKAGE_ZIP=1 /path/to/xbmc/project/cmake/addons`
 3. `make`
 
+## Developer notes
+
+* As the Python scripts are executed by the pvr.python addon, there is no direct access to the usual Kodi modules (`xbmc`, `xbmcgui` and so on). Access to a limited range of the Kodi functions available to the addon is provided through the `bridge` module (e.g. `bridge.XBMC_Log`).
+* The interface to the PVR API has been Python-ified. Multiple return values are used instead of pass-by-reference, Hungarian notation type prefixes are dropped, enums have their own namespace, and so on. Camel case, however, has generally been retained. When in doubt, check the implementation in *client.cpp*, or the reference implementation.
+
 ## Licence
 
 Copyright © 2016  RunasSudo (Yingtong Li)
