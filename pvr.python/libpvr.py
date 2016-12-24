@@ -226,7 +226,7 @@ class BasePVR:
 		return 'connected'
 	
 	def GetBackendVersion(self):
-		return '0.0.1.0'
+		return '0.0.2.0'
 	
 	def GetBackendHostname(self):
 		return ''
