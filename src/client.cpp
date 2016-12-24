@@ -272,6 +272,28 @@ PVR_ERROR pyCallPVRError(PyObject* obj, const char* func, PyObject* args) {
 	return ((PVR_ERROR) returnValue);
 }
 
+int pyCallInt(PyObject* obj, const char* func, PyObject* args) {
+	PYTHON_LOCK();
+	
+	PyObject* pyFunc = PyObject_GetAttrString(pvrImpl, func);
+	PyObject* pyArgs = args;
+	if (args == NULL) {
+		pyArgs = PyTuple_New(0);
+	}
+	PyObject* pyReturnValue = PyObject_CallObject(pyFunc, pyArgs);
+	if (PyErr_Occurred() != NULL) { PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return -1; }
+	int returnValue = PyInt_AsLong(pyReturnValue);
+	Py_DECREF(pyReturnValue);
+	if (args == NULL) {
+		Py_DECREF(pyArgs);
+	}
+	Py_DECREF(pyFunc);
+	
+	PYTHON_UNLOCK();
+	
+	return returnValue;
+}
+
 // END PYTHON<->C FUNCTIONS
 
 //void ADDON_ReadSettings(void)
@@ -493,6 +515,14 @@ PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, const PVR_CHANNEL_GROUP &g
 	return pyCallPVRError(pvrImpl, "GetChannelGroupMembers", Py_BuildValue("({s:s, s:b, s:i})", "groupName", group.strGroupName, "isRadio", group.bIsRadio, "position", group.iPosition));
 }
 
+PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int *size)
+{
+	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	
+	/* TODO: Implement this to get support for the timer features introduced with PVR API 1.9.7 */
+	return PVR_ERROR_NOT_IMPLEMENTED;
+}
+
 PVR_ERROR GetTimers(ADDON_HANDLE handle)
 {
 	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
@@ -508,6 +538,46 @@ PVR_ERROR GetRecordings(ADDON_HANDLE handle, bool deleted)
 	
 	addon_handle = handle;
 	return pyCallPVRError(pvrImpl, "GetRecordings", Py_BuildValue("(b)", deleted));
+}
+
+PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
+{
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	
+	PYTHON_LOCK();
+	
+	PyObject* pyFunc = PyObject_GetAttrString(pvrImpl, "GetDriveSpace");
+	PyObject* pyArgs = PyTuple_New(0);
+	PyObject* pyReturnValue = PyObject_CallObject(pyFunc, pyArgs);
+	if (PyErr_Occurred() != NULL) { PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return PVR_ERROR_FAILED; }
+	int errorCode = PyInt_AsLong(PyTuple_GetItem(pyReturnValue, 0));
+	*iTotal = PyLong_AsLongLong(PyTuple_GetItem(pyReturnValue, 1));
+	*iUsed = PyLong_AsLongLong(PyTuple_GetItem(pyReturnValue, 2));
+	Py_DECREF(pyReturnValue);
+	Py_DECREF(pyArgs);
+	Py_DECREF(pyFunc);
+	
+	PYTHON_UNLOCK();
+	
+	return ((PVR_ERROR) errorCode);
+}
+
+int GetChannelsAmount(void)
+{
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	return pyCallInt(pvrImpl, "GetChannelsAmount", NULL);
+}
+
+int GetTimersAmount(void)
+{
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	return pyCallInt(pvrImpl, "GetTimersAmount", NULL);
+}
+
+int GetRecordingsAmount(bool deleted)
+{
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	return pyCallInt(pvrImpl, "GetRecordingsAmount", Py_BuildValue("(b)", deleted));
 }
 
 void OnSystemSleep()
@@ -552,15 +622,6 @@ const char* GetMininumGUIAPIVersion(void)
 	return ""; // GUI API not used
 }
 
-PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
-{
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
-	return PVR_ERROR_NOT_IMPLEMENTED;
-	*iTotal = 1024 * 1024 * 1024;
-	*iUsed = 0;
-	return PVR_ERROR_NO_ERROR;
-}
-
 PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &channel, time_t iStart, time_t iEnd)
 {
 	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
@@ -570,17 +631,6 @@ PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &channel, time
 		return m_data->GetEPGForChannel(handle, channel, iStart, iEnd);
 	
 	return PVR_ERROR_SERVER_ERROR;
-}
-
-int GetChannelsAmount(void)
-{
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
-	return -1;
-	
-	if (m_data)
-		return m_data->GetChannelsAmount();
-	
-	return -1;
 }
 
 bool OpenLiveStream(const PVR_CHANNEL &channel)
@@ -644,37 +694,6 @@ PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 	snprintf(signalStatus.strAdapterStatus, sizeof(signalStatus.strAdapterStatus), "OK");
 	
 	return PVR_ERROR_NO_ERROR;
-}
-
-int GetRecordingsAmount(bool deleted)
-{
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
-	return -1;
-	
-	if (m_data)
-		return m_data->GetRecordingsAmount(deleted);
-	
-	return -1;
-}
-
-PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int *size)
-{
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
-	return PVR_ERROR_NOT_IMPLEMENTED;
-	
-	/* TODO: Implement this to get support for the timer features introduced with PVR API 1.9.7 */
-	return PVR_ERROR_NOT_IMPLEMENTED;
-}
-
-int GetTimersAmount(void)
-{
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
-	return -1;
-	
-	if (m_data)
-		return m_data->GetTimersAmount();
-	
-	return -1;
 }
 
 /** UNUSED API FUNCTIONS */

@@ -221,3 +221,15 @@ class DemoPVRImpl:
 				bridge.PVR_TransferRecordingEntry(recording)
 		
 		return libpvr.PVR_ERROR.NO_ERROR
+	
+	def GetDriveSpace(self):
+		return libpvr.PVR_ERROR.NO_ERROR, 1024*1024*1024, 0
+	
+	def GetChannelsAmount(self):
+		return len(self.channels)
+	
+	def GetTimersAmount(self):
+		return len(self.timers)
+	
+	def GetRecordingsAmount(self, deleted):
+		return len([x for x in self.recordings if x['isDeleted'] == deleted])
