@@ -76,9 +76,8 @@ class DemoPVRImpl:
 		
 		# Timers
 		self.timers = []
+		today = datetime.datetime.utcnow()
 		for timerTag in root.find('timers').findall('timer'):
-			today = datetime.datetime.utcnow()
-			
 			if timerTag.find('starttime') is not None and timerTag.find('starttime').text is not None:
 				startTimeTime = datetime.datetime.strptime(timerTag.find('starttime').text, '%H:%M')
 				startTimeDT = datetime.datetime.combine(today.date(), startTimeTime.time())
@@ -121,6 +120,49 @@ class DemoPVRImpl:
 				'genreType': 0,
 				'genreSubType': 0
 			})
+		
+		# Recordings
+		self.recordings = []
+		def processRecording(recordingTag, deleted):
+			if recordingTag.find('time') is not None and recordingTag.find('time').text is not None:
+				recordingTimeTime = datetime.datetime.strptime(recordingTag.find('time').text, '%H:%M')
+				recordingTimeDT = datetime.datetime.combine(today.date(), recordingTimeTime.time())
+				recordingTime = time.mktime(recordingTimeDT.timetuple())
+			else:
+				recordingTime = 0
+			
+			self.recordings.append({
+				'recordingId': str(len(self.recordings) + 1),
+				'title': textDef(recordingTag.find('title'), ''),
+				'episodeName': '',
+				'seriesNumber': 0,
+				'episodeNumber': 0,
+				'year': 0,
+				'streamURL': textDef(recordingTag.find('url'), ''),
+				'directory': textDef(recordingTag.find('directory'), ''),
+				'plotOutline': textDef(recordingTag.find('plotoutline'), ''),
+				'plot': textDef(recordingTag.find('plot'), ''),
+				'channelName': textDef(recordingTag.find('channelname'), ''),
+				'iconPath': '',
+				'thumbnailPath': '',
+				'fanartPath': '',
+				'recordingTime': recordingTime,
+				'duration': int(textDef(recordingTag.find('duration'), 0)),
+				'priority': 0,
+				'lifetime': 0,
+				'genreType': int(textDef(recordingTag.find('genretype'), 0)),
+				'genreSubType': int(textDef(recordingTag.find('genresubtype'), 0)),
+				'playCount': 0,
+				'lastPlayedPosition': 0,
+				'isDeleted': deleted,
+				'epgEventId': 0,
+				'channelUid': -1,
+				'channelType': 1 if (textDef(recordingTag.find('radio'), 0) == '0') else 2
+			})
+		for recordingTag in root.find('recordings').findall('recording'):
+			processRecording(recordingTag, False)
+		for recordingTag in root.find('recordingsdeleted').findall('recording'):
+			processRecording(recordingTag, True)
 	
 	def GetAddonCapabilities(self):
 		return libpvr.PVR_ERROR.NO_ERROR, {
@@ -170,5 +212,12 @@ class DemoPVRImpl:
 	def GetTimers(self):
 		for timer in self.timers:
 			bridge.PVR_TransferTimerEntry(timer)
+		
+		return libpvr.PVR_ERROR.NO_ERROR
+	
+	def GetRecordings(self, deleted):
+		for recording in self.recordings:
+			if recording['isDeleted'] == deleted:
+				bridge.PVR_TransferRecordingEntry(recording)
 		
 		return libpvr.PVR_ERROR.NO_ERROR

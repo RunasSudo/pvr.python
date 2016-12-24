@@ -175,12 +175,54 @@ static PyObject* bridge_PVR_TransferTimerEntry(PyObject* self, PyObject* args)
 	return Py_None;
 }
 
+static PyObject* bridge_PVR_TransferRecordingEntry(PyObject* self, PyObject* args)
+{
+	PyObject* pyEntry = PyTuple_GetItem(args, 0);
+	
+	PVR_RECORDING xbmcEntry;
+	memset(&xbmcEntry, 0, sizeof(PVR_RECORDING));
+	
+	strcpy(xbmcEntry.strRecordingId, PyString_AsString(PyDict_GetItemString(pyEntry, "recordingId")));
+	strcpy(xbmcEntry.strTitle, PyString_AsString(PyDict_GetItemString(pyEntry, "title")));
+	strcpy(xbmcEntry.strEpisodeName, PyString_AsString(PyDict_GetItemString(pyEntry, "episodeName")));
+	xbmcEntry.iSeriesNumber = PyInt_AsLong(PyDict_GetItemString(pyEntry, "seriesNumber"));
+	xbmcEntry.iEpisodeNumber = PyInt_AsLong(PyDict_GetItemString(pyEntry, "episodeNumber"));
+	xbmcEntry.iYear = PyInt_AsLong(PyDict_GetItemString(pyEntry, "year"));
+	strcpy(xbmcEntry.strStreamURL, PyString_AsString(PyDict_GetItemString(pyEntry, "streamURL")));
+	strcpy(xbmcEntry.strDirectory, PyString_AsString(PyDict_GetItemString(pyEntry, "directory")));
+	strcpy(xbmcEntry.strPlotOutline, PyString_AsString(PyDict_GetItemString(pyEntry, "plotOutline")));
+	strcpy(xbmcEntry.strPlot, PyString_AsString(PyDict_GetItemString(pyEntry, "plot")));
+	strcpy(xbmcEntry.strChannelName, PyString_AsString(PyDict_GetItemString(pyEntry, "channelName")));
+	strcpy(xbmcEntry.strIconPath, PyString_AsString(PyDict_GetItemString(pyEntry, "iconPath")));
+	strcpy(xbmcEntry.strThumbnailPath, PyString_AsString(PyDict_GetItemString(pyEntry, "thumbnailPath")));
+	strcpy(xbmcEntry.strFanartPath, PyString_AsString(PyDict_GetItemString(pyEntry, "fanartPath")));
+	xbmcEntry.recordingTime = PyInt_AsLong(PyDict_GetItemString(pyEntry, "recordingTime"));
+	xbmcEntry.iDuration = PyInt_AsLong(PyDict_GetItemString(pyEntry, "duration"));
+	xbmcEntry.iPriority = PyInt_AsLong(PyDict_GetItemString(pyEntry, "priority"));
+	xbmcEntry.iLifetime = PyInt_AsLong(PyDict_GetItemString(pyEntry, "lifetime"));
+	xbmcEntry.iGenreType = PyInt_AsLong(PyDict_GetItemString(pyEntry, "genreType"));
+	xbmcEntry.iGenreSubType = PyInt_AsLong(PyDict_GetItemString(pyEntry, "genreSubType"));
+	xbmcEntry.iPlayCount = PyInt_AsLong(PyDict_GetItemString(pyEntry, "playCount"));
+	xbmcEntry.iLastPlayedPosition = PyInt_AsLong(PyDict_GetItemString(pyEntry, "lastPlayedPosition"));
+	xbmcEntry.bIsDeleted = PyBool_AsBool(PyDict_GetItemString(pyEntry, "isDeleted"));
+	xbmcEntry.iEpgEventId = PyInt_AsLong(PyDict_GetItemString(pyEntry, "epgEventId"));
+	xbmcEntry.iChannelUid = PyInt_AsLong(PyDict_GetItemString(pyEntry, "channelUid"));
+	xbmcEntry.iChannelUid = PVR_CHANNEL_INVALID_UID;
+	xbmcEntry.channelType = (PVR_RECORDING_CHANNEL_TYPE) PyInt_AsLong(PyDict_GetItemString(pyEntry, "channelType"));
+	
+	PVR->TransferRecordingEntry(addon_handle, &xbmcEntry);
+	
+	Py_INCREF(Py_None);
+	return Py_None;
+}
+
 static PyMethodDef bridgeMethods[] = {
 	{"XBMC_Log", bridge_XBMC_Log, METH_VARARGS, ""},
 	{"PVR_TransferChannelEntry", bridge_PVR_TransferChannelEntry, METH_VARARGS, ""},
 	{"PVR_TransferChannelGroup", bridge_PVR_TransferChannelGroup, METH_VARARGS, ""},
 	{"PVR_TransferChannelGroupMember", bridge_PVR_TransferChannelGroupMember, METH_VARARGS, ""},
 	{"PVR_TransferTimerEntry", bridge_PVR_TransferTimerEntry, METH_VARARGS, ""},
+	{"PVR_TransferRecordingEntry", bridge_PVR_TransferRecordingEntry, METH_VARARGS, ""},
 	{NULL, NULL, 0, NULL}
 };
 
@@ -367,7 +409,7 @@ void ADDON_FreeSettings()
 
 PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 {
-	XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
 	PYTHON_LOCK();
 	
@@ -405,31 +447,31 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 
 const char *GetBackendName(void)
 {
-	XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	return pyCallString(pvrImpl, "GetBackendName", NULL);
 }
 
 const char *GetConnectionString(void)
 {
-	XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	return pyCallString(pvrImpl, "GetConnectionString", NULL);
 }
 
 const char *GetBackendVersion(void)
 {
-	XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	return pyCallString(pvrImpl, "GetBackendVersion", NULL);
 }
 
 const char *GetBackendHostname(void)
 {
-	XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	return pyCallString(pvrImpl, "GetBackendHostname", NULL);
 }
 
 PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio)
 {
-	XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
 	addon_handle = handle;
 	return pyCallPVRError(pvrImpl, "GetChannels", Py_BuildValue("(b)", bRadio));
@@ -437,7 +479,7 @@ PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio)
 
 PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
 {
-	XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
 	addon_handle = handle;
 	return pyCallPVRError(pvrImpl, "GetChannelGroups", Py_BuildValue("(b)", bRadio));
@@ -445,7 +487,7 @@ PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
 
 PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, const PVR_CHANNEL_GROUP &group)
 {
-	XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
 	addon_handle = handle;
 	return pyCallPVRError(pvrImpl, "GetChannelGroupMembers", Py_BuildValue("({s:s, s:b, s:i})", "groupName", group.strGroupName, "isRadio", group.bIsRadio, "position", group.iPosition));
@@ -453,11 +495,19 @@ PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, const PVR_CHANNEL_GROUP &g
 
 PVR_ERROR GetTimers(ADDON_HANDLE handle)
 {
-	XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
 	addon_handle = handle;
 	/* TODO: Change implementation to get support for the timer features introduced with PVR API 1.9.7 */
 	return pyCallPVRError(pvrImpl, "GetTimers", NULL);
+}
+
+PVR_ERROR GetRecordings(ADDON_HANDLE handle, bool deleted)
+{
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	
+	addon_handle = handle;
+	return pyCallPVRError(pvrImpl, "GetRecordings", Py_BuildValue("(b)", deleted));
 }
 
 void OnSystemSleep()
@@ -605,17 +655,6 @@ int GetRecordingsAmount(bool deleted)
 		return m_data->GetRecordingsAmount(deleted);
 	
 	return -1;
-}
-
-PVR_ERROR GetRecordings(ADDON_HANDLE handle, bool deleted)
-{
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
-	return PVR_ERROR_NOT_IMPLEMENTED;
-	
-	if (m_data)
-		return m_data->GetRecordings(handle, deleted);
-	
-	return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
 PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int *size)
