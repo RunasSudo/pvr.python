@@ -15,8 +15,7 @@
 #   You should have received a copy of the GNU Affero General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-import libpvr
-import bridge
+from libpvr import *
 
 import datetime
 import os
@@ -26,12 +25,7 @@ import xml.etree.ElementTree as ET
 def getInstance():
 	return DemoPVRImpl()
 
-class DemoPVRImpl:
-	def ADDON_Create(self, props):
-		self.loadData(props)
-		
-		return libpvr.ADDON_STATUS.OK
-	
+class DemoPVRImpl(BasePVR):
 	def loadData(self, props):
 		tree = ET.parse(os.path.join(props['clientPath'], 'PVRDemoAddonSettings.xml'))
 		root = tree.getroot()
@@ -46,7 +40,7 @@ class DemoPVRImpl:
 		# Channels
 		self.channels = []
 		for channelTag in root.find('channels').findall('channel'):
-			self.channels.append(libpvr.PVRChannel(
+			self.channels.append(PVRChannel(
 				uniqueId = len(self.channels) + 1,
 				isRadio = textDef(channelTag.find('radio'), 0) == '1',
 				channelNumber = int(textDef(channelTag.find('number'), 0)),
@@ -59,12 +53,12 @@ class DemoPVRImpl:
 		# Channel groups
 		self.channelGroups = []
 		for groupTag in root.find('channelgroups').findall('group'):
-			self.channelGroups.append(libpvr.PVRChannelGroup(
+			self.channelGroups.append(PVRChannelGroup(
 				groupName = textDef(groupTag.find('name'), ''),
 				isRadio = textDef(groupTag.find('radio'), 0) == '1',
 				position = int(textDef(groupTag.find('position'), 0)),
 				members = [
-					libpvr.PVRChannelGroupMember(
+					PVRChannelGroupMember(
 						groupName = textDef(groupTag.find('name'), ''),
 						channelUniqueId = int(textDef(memberTag, 0)),
 						channelNumber = i + 1
@@ -87,13 +81,13 @@ class DemoPVRImpl:
 			else:
 				endTime = None
 			
-			self.timers.append(libpvr.PVRTimer(
+			self.timers.append(PVRTimer(
 				clientIndex = len(self.timers) + 1,
 				clientChannelUid = int(textDef(timerTag.find('channelid'), 0)),
 				startTime = startTime,
 				endTime = endTime,
 				state = int(textDef(timerTag.find('state'), 0)),
-				timerType = libpvr.PVRTimer.TYPE_NONE,
+				timerType = PVRTimer.TYPE_NONE,
 				title = textDef(timerTag.find('title'), ''),
 				summary = textDef(timerTag.find('summary'), '')
 			))
@@ -107,7 +101,7 @@ class DemoPVRImpl:
 			else:
 				recordingTime = None
 			
-			self.recordings.append(libpvr.PVRRecording(
+			self.recordings.append(PVRRecording(
 				recordingId = str(len(self.recordings) + 1),
 				title = textDef(recordingTag.find('title'), ''),
 				streamURL = textDef(recordingTag.find('url'), ''),
@@ -120,7 +114,7 @@ class DemoPVRImpl:
 				genreType = int(textDef(recordingTag.find('genretype'), 0)),
 				genreSubType = int(textDef(recordingTag.find('genresubtype'), 0)),
 				isDeleted = deleted,
-				channelType = libpvr.PVRRecording.CHANNEL_TYPE_TV if (textDef(recordingTag.find('radio'), 0) == '0') else libpvr.PVRRecording.CHANNEL_TYPE_RADIO
+				channelType = PVRRecording.CHANNEL_TYPE_TV if (textDef(recordingTag.find('radio'), 0) == '0') else PVRRecording.CHANNEL_TYPE_RADIO
 			))
 		for recordingTag in root.find('recordings').findall('recording'):
 			processRecording(recordingTag, False)
@@ -142,7 +136,7 @@ class DemoPVRImpl:
 			else:
 				endTime = None
 			
-			self.epg.append(libpvr.EPGTag(
+			self.epg.append(EPGTag(
 				uniqueBroadcastId = int(entryTag.find('broadcastid').text),
 				title = textDef(entryTag.find('title'), ''),
 				channelNumber = int(textDef(entryTag.find('channelid'), 0)),
@@ -156,7 +150,7 @@ class DemoPVRImpl:
 			))
 	
 	def GetAddonCapabilities(self):
-		return libpvr.PVR_ERROR.NO_ERROR, {
+		return PVR_ERROR.NO_ERROR, {
 			'supportsEPG': True,
 			'supportsTV': True,
 			'supportsRadio': True,
@@ -181,40 +175,40 @@ class DemoPVRImpl:
 	def GetChannels(self, radio):
 		for channel in self.channels:
 			if channel.isRadio == radio:
-				bridge.PVR_TransferChannelEntry(channel)
+				yield channel
 		
-		return libpvr.PVR_ERROR.NO_ERROR
+		raise PVRListDone(PVR_ERROR.NO_ERROR)
 	
 	def GetChannelGroups(self, radio):
 		for group in self.channelGroups:
 			if group.isRadio == radio:
-				bridge.PVR_TransferChannelGroup(group)
+				yield group
 		
-		return libpvr.PVR_ERROR.NO_ERROR
+		raise PVRListDone(PVR_ERROR.NO_ERROR)
 	
 	def GetChannelGroupMembers(self, groupName):
 		for group in self.channelGroups:
 			if group.groupName == groupName:
 				for member in group.members:
-					bridge.PVR_TransferChannelGroupMember(member)
+					yield member
 		
-		return libpvr.PVR_ERROR.NO_ERROR
+		raise PVRListDone(PVR_ERROR.NO_ERROR)
 	
 	def GetTimers(self):
 		for timer in self.timers:
-			bridge.PVR_TransferTimerEntry(timer)
+			yield timer
 		
-		return libpvr.PVR_ERROR.NO_ERROR
+		raise PVRListDone(PVR_ERROR.NO_ERROR)
 	
 	def GetRecordings(self, deleted):
 		for recording in self.recordings:
 			if recording.isDeleted == deleted:
-				bridge.PVR_TransferRecordingEntry(recording)
+				yield recording
 		
-		return libpvr.PVR_ERROR.NO_ERROR
+		raise PVRListDone(PVR_ERROR.NO_ERROR)
 	
 	def GetDriveSpace(self):
-		return libpvr.PVR_ERROR.NO_ERROR, 1024*1024*1024, 0
+		return PVR_ERROR.NO_ERROR, 1024*1024*1024, 0
 	
 	def GetChannelsAmount(self):
 		return len(self.channels)
@@ -232,6 +226,6 @@ class DemoPVRImpl:
 		for entry in self.epg:
 			if entry.channelNumber == channelId:
 				if entry.endTime >= startTime and entry.startTime <= endTime:
-					bridge.PVR_TransferEpgEntry(entry)
+					yield entry
 		
-		return libpvr.PVR_ERROR.NO_ERROR
+		raise PVRListDone(PVR_ERROR.NO_ERROR)

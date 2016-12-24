@@ -204,8 +204,8 @@ static PyObject* bridge_PVR_TransferTimerEntry(PyObject* self, PyObject* args)
 	xbmcEntry.iClientIndex = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "clientIndex"));
 	xbmcEntry.iParentClientIndex = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "parentClientIndex"));
 	xbmcEntry.iClientChannelUid = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "clientChannelUid"));
-	xbmcEntry.startTime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "cstartTime"));
-	xbmcEntry.endTime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "cendTime"));
+	xbmcEntry.startTime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "_cstartTime"));
+	xbmcEntry.endTime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "_cendTime"));
 	xbmcEntry.bStartAnyTime = PyBool_AsBool_DR(PyObject_GetAttrString(pyEntry, "startAnyTime"));
 	xbmcEntry.bEndAnyTime = PyBool_AsBool_DR(PyObject_GetAttrString(pyEntry, "endAnyTime"));
 	xbmcEntry.state = (PVR_TIMER_STATE) PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "state"));
@@ -219,7 +219,7 @@ static PyObject* bridge_PVR_TransferTimerEntry(PyObject* self, PyObject* args)
 	xbmcEntry.iLifetime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "lifetime"));
 	xbmcEntry.iMaxRecordings = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "maxRecordings"));
 	xbmcEntry.iRecordingGroup = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "recordingGroup"));
-	xbmcEntry.firstDay = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "cfirstDay"));
+	xbmcEntry.firstDay = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "_cfirstDay"));
 	xbmcEntry.iWeekdays = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "weekdays"));
 	xbmcEntry.iPreventDuplicateEpisodes = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "preventDuplicateEpisodes"));
 	xbmcEntry.iEpgUid = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "epgUid"));
@@ -255,7 +255,7 @@ static PyObject* bridge_PVR_TransferRecordingEntry(PyObject* self, PyObject* arg
 	strcpy(xbmcEntry.strIconPath, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "iconPath")));
 	strcpy(xbmcEntry.strThumbnailPath, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "thumbnailPath")));
 	strcpy(xbmcEntry.strFanartPath, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "fanartPath")));
-	xbmcEntry.recordingTime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "crecordingTime"));
+	xbmcEntry.recordingTime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "_crecordingTime"));
 	xbmcEntry.iDuration = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "duration"));
 	xbmcEntry.iPriority = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "priority"));
 	xbmcEntry.iLifetime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "lifetime"));
@@ -287,8 +287,8 @@ static PyObject* bridge_PVR_TransferEpgEntry(PyObject* self, PyObject* args)
 	xbmcEntry.iUniqueBroadcastId = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "uniqueBroadcastId"));
 	xbmcEntry.strTitle = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "title"));
 	xbmcEntry.iChannelNumber = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "channelNumber"));
-	xbmcEntry.startTime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "cstartTime"));
-	xbmcEntry.endTime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "cendTime"));
+	xbmcEntry.startTime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "_cstartTime"));
+	xbmcEntry.endTime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "_cendTime"));
 	xbmcEntry.strPlotOutline = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "plotOutline"));
 	xbmcEntry.strPlot = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "plot"));
 	xbmcEntry.strOriginalTitle = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "originalTitle"));
@@ -301,7 +301,7 @@ static PyObject* bridge_PVR_TransferEpgEntry(PyObject* self, PyObject* args)
 	xbmcEntry.iGenreType = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "genreType"));
 	xbmcEntry.iGenreSubType = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "genreSubType"));
 	xbmcEntry.strGenreDescription = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "genreDescription"));
-	xbmcEntry.firstAired = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "cfirstAired"));
+	xbmcEntry.firstAired = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "_cfirstAired"));
 	xbmcEntry.iParentalRating = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "parentalRating"));
 	xbmcEntry.iStarRating = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "starRating"));
 	xbmcEntry.bNotify = PyBool_AsBool_DR(PyObject_GetAttrString(pyEntry, "notify"));
@@ -534,7 +534,7 @@ PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio)
 	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
 	addon_handle = handle;
-	return pyLockCallPVRError(pvrImpl, "GetChannels", Py_BuildValue("(b)", bRadio));
+	return pyLockCallPVRError(pvrImpl, "_cGetChannels", Py_BuildValue("(b)", bRadio));
 }
 
 PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
@@ -542,7 +542,7 @@ PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
 	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
 	addon_handle = handle;
-	return pyLockCallPVRError(pvrImpl, "GetChannelGroups", Py_BuildValue("(b)", bRadio));
+	return pyLockCallPVRError(pvrImpl, "_cGetChannelGroups", Py_BuildValue("(b)", bRadio));
 }
 
 PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, const PVR_CHANNEL_GROUP &group)
@@ -550,7 +550,7 @@ PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, const PVR_CHANNEL_GROUP &g
 	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
 	addon_handle = handle;
-	return pyLockCallPVRError(pvrImpl, "GetChannelGroupMembers", Py_BuildValue("(s)", group.strGroupName));
+	return pyLockCallPVRError(pvrImpl, "_cGetChannelGroupMembers", Py_BuildValue("(s)", group.strGroupName));
 }
 
 PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int *size)
@@ -567,7 +567,7 @@ PVR_ERROR GetTimers(ADDON_HANDLE handle)
 	
 	addon_handle = handle;
 	/* TODO: Change implementation to get support for the timer features introduced with PVR API 1.9.7 */
-	return pyLockCallPVRError(pvrImpl, "GetTimers", NULL);
+	return pyLockCallPVRError(pvrImpl, "_cGetTimers", NULL);
 }
 
 PVR_ERROR GetRecordings(ADDON_HANDLE handle, bool deleted)
@@ -575,7 +575,7 @@ PVR_ERROR GetRecordings(ADDON_HANDLE handle, bool deleted)
 	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
 	addon_handle = handle;
-	return pyLockCallPVRError(pvrImpl, "GetRecordings", Py_BuildValue("(b)", deleted));
+	return pyLockCallPVRError(pvrImpl, "_cGetRecordings", Py_BuildValue("(b)", deleted));
 }
 
 PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
@@ -623,7 +623,7 @@ PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &channel, time
 	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
 	addon_handle = handle;
-	return pyLockCallPVRError(pvrImpl, "GetEPGForChannel", Py_BuildValue("(i, i, i)", channel.iUniqueId, iStart, iEnd));
+	return pyLockCallPVRError(pvrImpl, "_cGetEPGForChannel", Py_BuildValue("(i, i, i)", channel.iUniqueId, iStart, iEnd));
 }
 
 void OnSystemSleep()

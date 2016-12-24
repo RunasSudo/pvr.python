@@ -15,6 +15,8 @@
 #   You should have received a copy of the GNU Affero General Public License
 #   along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+import bridge
+
 import time
 
 # Classes
@@ -96,21 +98,22 @@ class EPGTag:
 			setattr(self, k, v)
 	
 	@property
-	def cstartTime(self):
+	def _cstartTime(self):
 		return _datetimeToC(self.startTime)
 	
 	@property
-	def cendTime(self):
+	def _cendTime(self):
 		return _datetimeToC(self.endTime)
 	
 	@property
-	def cfirstAired(self):
+	def _cfirstAired(self):
 		return _datetimeToC(self.firstAired)
 
 class PVRTimer:
 	NO_PARENT = 0
 	TYPE_NONE = 0
 	
+	# y u no '*' in arguments list, python 2? :/
 	def __init__(self,
 	             clientIndex,
 	             state,
@@ -143,15 +146,15 @@ class PVRTimer:
 			setattr(self, k, v)
 	
 	@property
-	def cstartTime(self):
+	def _cstartTime(self):
 		return _datetimeToC(self.startTime)
 	
 	@property
-	def cendTime(self):
+	def _cendTime(self):
 		return _datetimeToC(self.endTime)
 	
 	@property
-	def cfirstDay(self):
+	def _cfirstDay(self):
 		return _datetimeToC(self.firstDay)
 
 class PVRRecording:
@@ -191,8 +194,122 @@ class PVRRecording:
 			setattr(self, k, v)
 	
 	@property
-	def crecordingTime(self):
+	def _crecordingTime(self):
 		return _datetimeToC(self.recordingTime)
+
+# raised when the PVR_ERROR result is ready
+# y u no 'return' from generators, python 2? :/
+class PVRListDone(Exception):
+	def __init__(self, value):
+		self.value = value
+
+def force_generator(func):
+	def wrapper(*args, **kwargs):
+		# y u no 'yield from', python 2? :/
+		for item in func(*args, **kwargs):
+			yield item
+	return wrapper
+
+class BasePVR:
+	def ADDON_Create(self, props):
+		self.loadData(props)
+		
+		return ADDON_STATUS.OK
+	
+	def GetAddonCapabilities(self):
+		return PVR_ERROR.NOT_IMPLEMENTED
+	
+	def GetBackendName(self):
+		return 'python pvr base backend'
+	
+	def GetConnectionString(self):
+		return 'connected'
+	
+	def GetBackendVersion(self):
+		return '0.0.1.0'
+	
+	def GetBackendHostname(self):
+		return ''
+	
+	@force_generator
+	def GetChannels(self, radio):
+		raise PVRListDone(PVR_ERROR.NOT_IMPLEMENTED)
+	
+	def _cGetChannels(self, radio):
+		try:
+			for item in self.GetChannels(radio):
+				bridge.PVR_TransferChannelEntry(item)
+		except PVRListDone as ex:
+			return ex.value
+		
+		return PVR_ERROR.UNKNOWN # This should never happen.
+	
+	@force_generator
+	def GetChannelGroups(self, radio):
+		raise PVRListDone(PVR_ERROR.NOT_IMPLEMENTED)
+	
+	def _cGetChannelGroups(self, radio):
+		try:
+			for item in self.GetChannelGroups(radio):
+				bridge.PVR_TransferChannelGroup(item)
+		except PVRListDone as ex:
+			return ex.value
+	
+	@force_generator
+	def GetChannelGroupMembers(self, groupName):
+		raise PVRListDone(PVR_ERROR.NOT_IMPLEMENTED)
+	
+	def _cGetChannelGroupMembers(self, groupName):
+		try:
+			for item in self.GetChannelGroupMembers(groupName):
+				bridge.PVR_TransferChannelGroupMember(item)
+		except PVRListDone as ex:
+			return ex.value
+	
+	@force_generator
+	def GetTimers(self):
+		raise PVRListDone(PVR_ERROR.NOT_IMPLEMENTED)
+	
+	def _cGetTimers(self):
+		try:
+			for item in self.GetTimers():
+				bridge.PVR_TransferTimerEntry(item)
+		except PVRListDone as ex:
+			return ex.value
+	
+	@force_generator
+	def GetRecordings(self, deleted):
+		raise PVRListDone(PVR_ERROR.NOT_IMPLEMENTED)
+	
+	def _cGetRecordings(self, deleted):
+		try:
+			for item in self.GetRecordings(deleted):
+				bridge.PVR_TransferRecordingEntry(item)
+		except PVRListDone as ex:
+			return ex.value
+	
+	def GetDriveSpace(self):
+		return -1
+	
+	def GetChannelsAmount(self):
+		return -1
+	
+	def GetTimersAmount(self):
+		return -1
+	
+	def GetRecordingsAmount(self, deleted):
+		return -1
+	
+	@force_generator
+	def GetEPGForChannel(self, channelId, cstartTime, cendTime):
+		raise PVRListDone(PVR_ERROR.NOT_IMPLEMENTED)
+	
+	def _cGetEPGForChannel(self, channelId, cstartTime, cendTime):
+		try:
+			for item in self.GetEPGForChannel(channelId, cstartTime, cendTime):
+				bridge.PVR_TransferEpgEntry(item)
+		except PVRListDone as ex:
+			return ex.value
 
 # Enums
 
