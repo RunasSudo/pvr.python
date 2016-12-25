@@ -9,6 +9,8 @@ A PVR client supporting Python scripting for [Kodi](http://kodi.tv)
 2. `cmake -DADDONS_TO_BUILD=pvr.python -DADDON_SRC_PREFIX=../.. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_INSTALL_PREFIX=/path/to/xbmc/addons -DPACKAGE_ZIP=1 /path/to/xbmc/project/cmake/addons`
 3. `make`
 
+To use, name the Python PVR implementation *pvrimpl.py* and place it in the addon directory, e.g. *~/.kodi/addons/pvr.python/pvrimpl.py* or */usr/share/kodi/addons/pvr.python/pvrimpl.py*. The default *pvrimpl.py* is a re-implementation of the Demo PVR backend. Other examples are located in the *examples* directory.
+
 ## Developer notes
 
 * As the Python scripts are executed by the pvr.python addon, there is no direct access to the usual Kodi modules (`xbmc`, `xbmcgui` and so on). Access to a limited range of the Kodi functions available to the addon is provided through the `bridge` module (e.g. `bridge.XBMC_Log`).

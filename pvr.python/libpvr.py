@@ -217,6 +217,7 @@ class BasePVR:
 		return ADDON_STATUS.OK
 	
 	def GetAddonCapabilities(self):
+		bridge.XBMC_Log('GetAddonCapabilities - NYI')
 		return PVR_ERROR.NOT_IMPLEMENTED
 	
 	def GetBackendName(self):
@@ -226,13 +227,14 @@ class BasePVR:
 		return 'connected'
 	
 	def GetBackendVersion(self):
-		return '0.0.2.0'
+		return '0.0.2.1'
 	
 	def GetBackendHostname(self):
 		return ''
 	
 	@force_generator
 	def GetChannels(self, radio):
+		bridge.XBMC_Log('GetChannels - NYI')
 		raise PVRListDone(PVR_ERROR.NOT_IMPLEMENTED)
 	
 	def _cGetChannels(self, radio):
@@ -246,6 +248,7 @@ class BasePVR:
 	
 	@force_generator
 	def GetChannelGroups(self, radio):
+		bridge.XBMC_Log('GetChannelGroups - NYI')
 		raise PVRListDone(PVR_ERROR.NOT_IMPLEMENTED)
 	
 	def _cGetChannelGroups(self, radio):
@@ -257,6 +260,7 @@ class BasePVR:
 	
 	@force_generator
 	def GetChannelGroupMembers(self, groupName):
+		bridge.XBMC_Log('GetChannelGroupMembers - NYI')
 		raise PVRListDone(PVR_ERROR.NOT_IMPLEMENTED)
 	
 	def _cGetChannelGroupMembers(self, groupName):
@@ -268,6 +272,7 @@ class BasePVR:
 	
 	@force_generator
 	def GetTimers(self):
+		bridge.XBMC_Log('GetTimers - NYI')
 		raise PVRListDone(PVR_ERROR.NOT_IMPLEMENTED)
 	
 	def _cGetTimers(self):
@@ -279,6 +284,7 @@ class BasePVR:
 	
 	@force_generator
 	def GetRecordings(self, deleted):
+		bridge.XBMC_Log('GetRecordings - NYI')
 		raise PVRListDone(PVR_ERROR.NOT_IMPLEMENTED)
 	
 	def _cGetRecordings(self, deleted):
@@ -289,19 +295,24 @@ class BasePVR:
 			return ex.value
 	
 	def GetDriveSpace(self):
-		return -1
+		bridge.XBMC_Log('GetDriveSpace - NYI')
+		return PVR_ERROR.NOT_IMPLEMENTED, -1, -1
 	
 	def GetChannelsAmount(self):
+		bridge.XBMC_Log('GetChannelsAmount - NYI')
 		return -1
 	
 	def GetTimersAmount(self):
+		bridge.XBMC_Log('GetTimersAmount - NYI')
 		return -1
 	
 	def GetRecordingsAmount(self, deleted):
+		bridge.XBMC_Log('GetRecordingsAmount - NYI')
 		return -1
 	
 	@force_generator
 	def GetEPGForChannel(self, channelId, cstartTime, cendTime):
+		bridge.XBMC_Log('GetEPGForChannel - NYI')
 		raise PVRListDone(PVR_ERROR.NOT_IMPLEMENTED)
 	
 	def _cGetEPGForChannel(self, channelId, cstartTime, cendTime):
@@ -310,6 +321,26 @@ class BasePVR:
 				bridge.PVR_TransferEpgEntry(item)
 		except PVRListDone as ex:
 			return ex.value
+	
+	def OpenLiveStream(self, channelId):
+		bridge.XBMC_Log('OpenLiveStream - NYI')
+		return False
+	
+	def ReadLiveStream(self, bufferSize):
+		bridge.XBMC_Log('ReadLiveStream - NYI')
+		return -1
+	
+	def SeekLiveStream(self, bufferSize):
+		bridge.XBMC_Log('SeekLiveStream - NYI')
+		return -1
+	
+	def PositionLiveStream(self):
+		bridge.XBMC_Log('PositionLiveStream - NYI')
+		return -1
+	
+	def LengthLiveStream(self):
+		bridge.XBMC_Log('LengthLiveStream - NYI')
+		return -1
 
 # Enums
 

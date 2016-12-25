@@ -31,6 +31,7 @@ CHelper_libXBMC_pvr *PVR = NULL;
 
 PyThreadState* pyState;
 PyObject* pvrImpl;
+void* streamHandle;
 
 ADDON_HANDLE addon_handle;
 
@@ -63,21 +64,35 @@ char* PyString_AsString_DR(PyObject* obj) {
 	return val;
 }
 
-const char* pyCallString(PyObject* obj, const char* func, PyObject* args) {
+// You must Py_DECREF the return value once you're done!
+PyObject* pyCall(PyObject* obj, const char* func, PyObject* args) {
 	PyObject* pyFunc = PyObject_GetAttrString(obj, func);
 	PyObject* pyArgs = args;
 	if (args == NULL) {
 		pyArgs = PyTuple_New(0);
 	}
 	PyObject* pyReturnValue = PyObject_CallObject(pyFunc, pyArgs);
-	if (PyErr_Occurred() != NULL) { PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return ""; }
-	char* returnValue = PyString_AsString(pyReturnValue);
-	Py_DECREF(pyReturnValue);
+	if (PyErr_Occurred() != NULL) { PyErr_Print(); PyErr_Clear(); Py_INCREF(Py_None); PYTHON_UNLOCK(); return Py_None; }
 	if (args == NULL) {
 		Py_DECREF(pyArgs);
 	}
 	Py_DECREF(pyFunc);
 	
+	return pyReturnValue;
+}
+
+// You must Py_DECREF the return value once you're done!
+PyObject* pyLockCall(PyObject* obj, const char* func, PyObject* args) {
+	PYTHON_LOCK();
+	PyObject* pyReturnValue = pyCall(obj, func, args);
+	PYTHON_UNLOCK();
+	return pyReturnValue;
+}
+
+const char* pyCallString(PyObject* obj, const char* func, PyObject* args) {
+	PyObject* pyReturnValue = pyCall(obj, func, args);
+	char* returnValue = PyString_AsString(pyReturnValue);
+	Py_DECREF(pyReturnValue);
 	return returnValue;
 }
 
@@ -89,20 +104,9 @@ const char* pyLockCallString(PyObject* obj, const char* func, PyObject* args) {
 }
 
 int pyCallInt(PyObject* obj, const char* func, PyObject* args) {
-	PyObject* pyFunc = PyObject_GetAttrString(pvrImpl, func);
-	PyObject* pyArgs = args;
-	if (args == NULL) {
-		pyArgs = PyTuple_New(0);
-	}
-	PyObject* pyReturnValue = PyObject_CallObject(pyFunc, pyArgs);
-	if (PyErr_Occurred() != NULL) { PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return -1; }
+	PyObject* pyReturnValue = pyCall(obj, func, args);
 	int returnValue = PyInt_AsLong(pyReturnValue);
 	Py_DECREF(pyReturnValue);
-	if (args == NULL) {
-		Py_DECREF(pyArgs);
-	}
-	Py_DECREF(pyFunc);
-	
 	return returnValue;
 }
 
@@ -282,8 +286,6 @@ static PyObject* bridge_PVR_TransferEpgEntry(PyObject* self, PyObject* args)
 	EPG_TAG xbmcEntry;
 	memset(&xbmcEntry, 0, sizeof(EPG_TAG));
 	
-	XBMC->Log(LOG_DEBUG, "%s - ABC", __FUNCTION__);
-	
 	xbmcEntry.iUniqueBroadcastId = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "uniqueBroadcastId"));
 	xbmcEntry.strTitle = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "title"));
 	xbmcEntry.iChannelNumber = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "channelNumber"));
@@ -312,8 +314,6 @@ static PyObject* bridge_PVR_TransferEpgEntry(PyObject* self, PyObject* args)
 	xbmcEntry.iFlags = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "flags"));
 	
 	PVR->TransferEpgEntry(addon_handle, &xbmcEntry);
-	
-	XBMC->Log(LOG_DEBUG, "%s - DEF", __FUNCTION__);
 	
 	Py_INCREF(Py_None);
 	return Py_None;
@@ -670,28 +670,117 @@ const char* GetMininumGUIAPIVersion(void)
 
 bool OpenLiveStream(const PVR_CHANNEL &channel)
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
-	return false;
+	XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
-	//if (m_data)
-	//{
-	//	CloseLiveStream();
-	//	
-	//	if (m_data->GetChannel(channel, m_currentChannel))
-	//	{
-	//		m_bIsPlaying = true;
-	//		return true;
-	//	}
-	//}
-	//
-	//return false;
+	CloseLiveStream();
+	
+	PYTHON_LOCK();
+	
+	if (PyErr_Occurred() != NULL) { XBMC->Log(LOG_DEBUG, "%s - D", __FUNCTION__); PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return false; }
+	PyObject* pyFunc = PyObject_GetAttrString(pvrImpl, "OpenLiveStream");
+	if (PyErr_Occurred() != NULL) { XBMC->Log(LOG_DEBUG, "%s - A", __FUNCTION__); PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return false; }
+	PyObject* pyArgs = Py_BuildValue("(i)", channel.iUniqueId);
+	if (PyErr_Occurred() != NULL) { XBMC->Log(LOG_DEBUG, "%s - B", __FUNCTION__); PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return false; }
+	PyObject* pyReturnValue = PyObject_CallObject(pyFunc, pyArgs);
+	if (PyErr_Occurred() != NULL) { XBMC->Log(LOG_DEBUG, "%s - C", __FUNCTION__); PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return false; }
+	
+	bool returnValue;
+	
+	if (!PyTuple_Check(pyReturnValue)) {
+		returnValue = PyBool_AsBool(pyReturnValue);
+	} else {
+		returnValue = PyBool_AsBool(PyTuple_GetItem(pyReturnValue, 0));
+		
+		// Are we offloading the file handling to Kodi?
+		if (returnValue && PyTuple_Size(pyReturnValue) > 1) {
+			// We are!
+			char* fileName = PyString_AsString(PyTuple_GetItem(pyReturnValue, 1));
+			
+			streamHandle = XBMC->OpenFile(fileName, 0);
+			
+			if (!streamHandle) {
+				XBMC->Log(LOG_DEBUG, "%s - Failed to open stream natively", __FUNCTION__);
+				returnValue = false;
+			} else {
+				XBMC->Log(LOG_DEBUG, "%s - Opened stream natively", __FUNCTION__);
+				returnValue = true;
+			}
+		}
+	}
+	
+	Py_DECREF(pyReturnValue);
+	Py_DECREF(pyArgs);
+	Py_DECREF(pyFunc);
+	
+	PYTHON_UNLOCK();
+	
+	return returnValue;
+}
+
+int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize) {
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	
+	if (!streamHandle) {
+		return pyLockCallInt(pvrImpl, "ReadLiveStream", Py_BuildValue("(i)", iBufferSize));
+	} else {
+		return XBMC->ReadFile(streamHandle, pBuffer, iBufferSize);
+	}
+}
+
+long long SeekLiveStream(long long iPosition, int iWhence /* = SEEK_SET */) {
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	
+	if (!streamHandle) {
+		return pyLockCallInt(pvrImpl, "SeekLiveStream", Py_BuildValue("(i, i)", iPosition, iWhence));
+	} else {
+		return XBMC->SeekFile(streamHandle, iPosition, iWhence);
+	}
+}
+
+long long PositionLiveStream(void) {
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	
+	if (!streamHandle) {
+		return pyLockCallInt(pvrImpl, "PositionLiveStream", NULL);
+	} else {
+		return XBMC->GetFilePosition(streamHandle);
+	}
+}
+
+long long LengthLiveStream(void) {
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	
+	if (!streamHandle) {
+		return pyLockCallInt(pvrImpl, "LengthLiveStream", NULL);
+	} else {
+		return XBMC->GetFileLength(streamHandle);
+	}
 }
 
 void CloseLiveStream(void)
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
-	//m_bIsPlaying = false;
+	if (!streamHandle) {
+		pyLockCall(pvrImpl, "CloseLiveStream", NULL);
+	} else {
+		XBMC->CloseFile(streamHandle);
+		streamHandle = NULL;
+	}
+}
+
+PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
+{
+	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	
+	strcpy(signalStatus.strAdapterStatus, "OK");
+	
+	return PVR_ERROR_NO_ERROR;
+	
+	//snprintf(signalStatus.strAdapterName, sizeof(signalStatus.strAdapterName), "pvr demo adapter 1");
+	//snprintf(signalStatus.strAdapterStatus, sizeof(signalStatus.strAdapterStatus), "OK");
+	//
+	//return PVR_ERROR_NO_ERROR;
 }
 
 bool SwitchChannel(const PVR_CHANNEL &channel)
@@ -720,17 +809,6 @@ int GetChannelGroupsAmount(void)
 	//return -1;
 }
 
-PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
-{
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
-	return PVR_ERROR_NOT_IMPLEMENTED;
-	
-	//snprintf(signalStatus.strAdapterName, sizeof(signalStatus.strAdapterName), "pvr demo adapter 1");
-	//snprintf(signalStatus.strAdapterStatus, sizeof(signalStatus.strAdapterStatus), "OK");
-	//
-	//return PVR_ERROR_NO_ERROR;
-}
-
 /** UNUSED API FUNCTIONS */
 PVR_ERROR OpenDialogChannelScan(void) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR CallMenuHook(const PVR_MENUHOOK &menuhook, const PVR_MENUHOOK_DATA &item) { return PVR_ERROR_NOT_IMPLEMENTED; }
@@ -747,11 +825,7 @@ long long PositionRecordedStream(void) { return -1; }
 long long LengthRecordedStream(void) { return 0; }
 void DemuxReset(void) {}
 void DemuxFlush(void) {}
-int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize) { return 0; }
-long long SeekLiveStream(long long iPosition, int iWhence /* = SEEK_SET */) { return -1; }
-long long PositionLiveStream(void) { return -1; }
-long long LengthLiveStream(void) { return -1; }
-const char * GetLiveStreamURL(const PVR_CHANNEL &channel) { return ""; }
+const char * GetLiveStreamURL(const PVR_CHANNEL &channel) { XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__); return ""; }
 PVR_ERROR DeleteRecording(const PVR_RECORDING &recording) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR RenameRecording(const PVR_RECORDING &recording) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR SetRecordingPlayCount(const PVR_RECORDING &recording, int count) { return PVR_ERROR_NOT_IMPLEMENTED; }
