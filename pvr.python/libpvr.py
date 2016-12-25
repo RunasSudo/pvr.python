@@ -328,9 +328,9 @@ class BasePVR:
 	
 	def ReadLiveStream(self, bufferSize):
 		bridge.XBMC_Log('ReadLiveStream - NYI')
-		return -1
+		return -1, None
 	
-	def SeekLiveStream(self, bufferSize):
+	def SeekLiveStream(self, position, whence):
 		bridge.XBMC_Log('SeekLiveStream - NYI')
 		return -1
 	

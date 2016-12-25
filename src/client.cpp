@@ -721,7 +721,21 @@ int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize) {
 	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
 	
 	if (!streamHandle) {
-		return pyLockCallInt(pvrImpl, "ReadLiveStream", Py_BuildValue("(i)", iBufferSize));
+		PYTHON_LOCK();
+		
+		PyObject* pyReturnValue = pyCall(pvrImpl, "ReadLiveStream", Py_BuildValue("(i)", iBufferSize));
+		int bytesRead = PyInt_AsLong(PyTuple_GetItem(pyReturnValue, 0));
+		
+		if (bytesRead > 0) {
+			char* contents = PyString_AsString(PyTuple_GetItem(pyReturnValue, 1));
+			memcpy(pBuffer, contents, bytesRead);
+		}
+		
+		Py_DECREF(pyReturnValue);
+		
+		PYTHON_UNLOCK();
+		
+		return bytesRead;
 	} else {
 		return XBMC->ReadFile(streamHandle, pBuffer, iBufferSize);
 	}
