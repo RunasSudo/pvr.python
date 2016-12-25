@@ -21,9 +21,11 @@ import base64
 import datetime
 import hashlib
 import hmac
+import gzip
 import json
 import os
 import re
+import StringIO
 import subprocess
 import sys
 import traceback
@@ -94,7 +96,7 @@ class ABCPVRImpl(BasePVR):
 	
 	def GetAddonCapabilities(self):
 		return PVR_ERROR.NO_ERROR, {
-			'supportsEPG': False,
+			'supportsEPG': True,
 			'supportsTV': True,
 			'supportsRadio': False,
 			'supportsRecordings': False,
@@ -127,6 +129,141 @@ class ABCPVRImpl(BasePVR):
 	
 	def GetChannelsAmount(self):
 		return len(self.channels)
+	
+	# http://forum.kodi.tv/showthread.php?tid=146527&pid=1250345#pid1250345
+	def getGenre(self, listingEntry):
+		genreNos = []
+		genreOthers = []
+		if 'genres' in listingEntry:
+			for genre in listingEntry['genres']:
+				if genre == 'Game Show':
+					genreNos.append((0x30, 0x01))
+				elif genre == 'Travel':
+					genreNos.append((0xA0, 0x01))
+				elif genre == 'Romance':
+					genreNos.append((0x10, 0x06))
+				elif genre == 'Music':
+					genreNos.append((0x60, 0x00))
+				elif genre == 'Factual':
+					genreNos.append((0x90, 0x00))
+				elif genre == 'Comedy':
+					genreNos.append((0x10, 0x04))
+				elif genre == 'Sci-fi' or genre == 'Fantasy': # Humph. They are clearly different things.
+					genreNos.append((0x10, 0x03))
+				elif genre == 'Talk Show':
+					genreNos.append((0x30, 0x03))
+				elif genre == 'Special Event':
+					genreNos.append((0x40, 0x01))
+				elif genre == 'Advantage':
+					genreNos.append((0x10, 0x02))
+				elif genre == 'News' or genre == 'Current Affairs':
+					genreNos.append((0x20, 0x00))
+				elif genre == 'Drama':
+					genreNos.append((0x10, 0x00))
+				elif genre == 'Documentary':
+					genreNos.append((0x20, 0x03))
+				elif genre == 'Musical':
+					genreNos.append((0x60, 0x04))
+				elif genre == 'Arts and Culture':
+					genreNos.append((0x70, 0x00))
+				elif genre == 'Soap Opera':
+					genreNos.append((0x10, 0x05))
+				elif genre == 'Sport':
+					genreNos.append((0x40, 0x00))
+				elif genre == 'Children':
+					genreNos.append((0x50, 0x00))
+				else:
+					genreOthers.append(genre)
+		
+		if len(genreNos) > 0:
+			return (genreNos[0][0], genreNos[0][1], '')
+		elif len(genreOthers) > 0:
+			return (256, 0, genreOthers[0])
+		else:
+			return (0, 0, '')
+	
+	def GetEPGForChannel(self, channelId, cstartTime, cendTime):
+		startTime = datetime.datetime.fromtimestamp(cstartTime)
+		endTime = datetime.datetime.fromtimestamp(cendTime)
+		
+		# The internal mktime() expects EPG times in local time, but ABC provides them in Sydney time (+1000/+1100)
+		# If only pytz were a default library...
+		def UTCIsSydneyDST(dt):
+			# Times in EST->UTC:
+			firstSundayInOct = dt.replace(month=10,day=1,hour=2,minute=0,second=0,microsecond=0) # DST begins
+			firstSundayInOct += datetime.timedelta(days=((7 - firstSundayInOct.isoweekday()) % 7))
+			firstSundayInOct -= datetime.timedelta(hours=10)
+			firstSundayInApr = dt.replace(month=10,day=1,hour=2,minute=0,second=0,microsecond=0) # DST ends
+			firstSundayInApr += datetime.timedelta(days=((7 - firstSundayInApr.isoweekday()) % 7))
+			firstSundayInApr -= datetime.timedelta(hours=10)
+			if dt > firstSundayInApr and dt < firstSundayInOct:
+				return False
+			return True
+		timeInSydney = datetime.datetime.utcnow()
+		if UTCIsSydneyDST(timeInSydney):
+			timeInSydney += datetime.timedelta(hours=11)
+		else:
+			timeInSydney += datetime.timedelta(hours=10)
+		localTZ = datetime.datetime.now() - datetime.datetime.utcnow() #UTC + how much?
+		def sydneyToLocal(dt):
+			# This will be wrong for one hour after DST ends, but the ABC EPG seems to give up around that period any way
+			dtUtc = dt - datetime.timedelta(hours=11)
+			if not UTCIsSydneyDST(dtUtc):
+				dtUtc += datetime.timedelta(hours=1)
+			return dtUtc + localTZ
+		
+		# Load the EPG pages
+		date = startTime.replace(hour=0,minute=0,second=0,microsecond=0)
+		while date < endTime:
+			handle = urllib2.urlopen('http://epg.abctv.net.au/processed/Sydney_{}-{}-{}.json'.format(date.year, date.month, date.day))
+			if handle.info().get('Content-Encoding') == 'gzip':
+				handle = gzip.GzipFile(fileobj=StringIO.StringIO(handle.read()))
+			
+			epgJson = json.load(handle)
+			
+			for i, channelEntry in enumerate(epgJson['schedule']):
+				if ((channelId == 1 and channelEntry['channel'] == 'ABC1') or
+				    (channelId == 2 and channelEntry['channel'] == 'ABC2') or
+				    (channelId == 3 and channelEntry['channel'] == 'ABC4KIDS') or
+				    (channelId == 4 and channelEntry['channel'] == 'ABC3') or
+				    (channelId == 5 and channelEntry['channel'] == 'ABCN')):
+					for listingEntry in channelEntry['listing']:
+						# Sometimes the next line fails once but works immediately afterwards, and I don't know why.
+						# I'm scared...
+						for i in xrange(0, 5):
+							try:
+								epgStartTime = sydneyToLocal(datetime.datetime.strptime(listingEntry['start_time'], '%Y-%m-%dT%H:%M:%S'))
+								break
+							except Exception as ex:
+								pass
+						if i == 4:
+							print 'Couldn\'t do it'
+							raise Exception('Uh oh')
+						epgEndTime = sydneyToLocal(datetime.datetime.strptime(listingEntry['end_time'].encode('utf-8'), '%Y-%m-%dT%H:%M:%S'))
+						
+						if epgStartTime <= endTime and epgEndTime >= startTime:
+							# Dodgy method of generating a unique id
+							epgId = date.toordinal() * 1000 + i
+							genre = self.getGenre(listingEntry)
+							
+							yield EPGTag(
+								uniqueBroadcastId = epgId,
+								title = listingEntry['title'] if 'title' in listingEntry else '',
+								channelNumber = channelId,
+								startTime = epgStartTime,
+								endTime = epgEndTime,
+								plot = listingEntry['description'] if 'description' in listingEntry else '',
+								originalTitle = listingEntry['onair_title'] if 'onair_title' in listingEntry else '',
+								genreType = genre[0],
+								genreSubType = genre[1],
+								genreDescription = genre[2],
+								seriesNumber = listingEntry['series_num'] if 'series_num' in listingEntry else -1,
+								episodeNumber = listingEntry['episode_num'] if 'episode_num' in listingEntry else -1
+							)
+			
+			date += datetime.timedelta(days=1)
+		
+		raise PVRListDone(PVR_ERROR.NO_ERROR)
 	
 	def GetStreamOptions(self, manifestBase):
 		# Fetch the verification swf
