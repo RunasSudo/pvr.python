@@ -43,12 +43,54 @@ class ABCPVRImpl(BasePVR):
 		self.streamProc = None
 		
 		# Channels
-		self.channels = [PVRChannel(
-			uniqueId = 23,
-			isRadio = False,
-			channelName = 'ABC ME',
-			streamURL = '' # We will manage the IO ourselves
-		)]
+		self.channels = [
+			PVRChannel(
+				uniqueId = 1,
+				isRadio = False,
+				channelNumber = 21,
+				channelName = 'ABC 1',
+				streamURL = '' # We will manage the IO ourselves
+			),
+			PVRChannel(
+				uniqueId = 2,
+				isRadio = False,
+				channelNumber = 22,
+				subChannelNumber = 1,
+				channelName = 'ABC 2',
+				streamURL = ''
+			),
+			PVRChannel(
+				uniqueId = 3,
+				isRadio = False,
+				channelNumber = 22,
+				subChannelNumber = 2,
+				channelName = 'ABC Kids',
+				streamURL = ''
+			),
+			PVRChannel(
+				uniqueId = 4,
+				isRadio = False,
+				channelNumber = 23,
+				channelName = 'ABC ME',
+				streamURL = ''
+			),
+			PVRChannel(
+				uniqueId = 5,
+				isRadio = False,
+				channelNumber = 24,
+				channelName = 'ABC News 24',
+				#streamURL = ''
+				streamURL = 'http://iphonestreaming.abc.net.au/news24/news24.m3u8'
+			)
+		]
+		
+		self.hdsIds = {
+			1: 'abc1_1@360322',
+			2: 'abc2_1@17511',
+			3: 'abckids_1@390083',
+			4: 'abc3_1@62060',
+			5: 'news24_1@321136'
+		}
 	
 	def GetAddonCapabilities(self):
 		return PVR_ERROR.NO_ERROR, {
@@ -116,7 +158,7 @@ class ABCPVRImpl(BasePVR):
 	
 	def OpenLiveStream(self, channelId):
 		try:
-			cmd = ['php', os.path.join(self.clientPath, 'examples', 'AdobeHDS.php')] + self.GetStreamOptions('http://abctvlivehds-lh.akamaihd.net/z/abc3_1@62060/manifest.f4m')
+			cmd = ['php', os.path.join(self.clientPath, 'examples', 'AdobeHDS.php')] + self.GetStreamOptions('http://abctvlivehds-lh.akamaihd.net/z/{}/manifest.f4m'.format(self.hdsIds[channelId]))
 			
 			#print "{} '{}' {} '{}' {} '{}' {} '{}' {}".format(*cmd)
 			
@@ -129,15 +171,20 @@ class ABCPVRImpl(BasePVR):
 		return False
 	
 	def ReadLiveStream(self, bufferSize):
-		buf = self.streamProc.stdout.read(bufferSize)
-		#print 'Read {} bytes'.format(len(buf))
-		#sys.stdout.write(buf)
-		return len(buf), buf
+		if self.streamProc is not None:
+			buf = self.streamProc.stdout.read(bufferSize)
+			#print 'Read {} bytes'.format(len(buf))
+			#sys.stdout.write(buf)
+			return len(buf), buf
+		
+		return 0, None
 	
 	def CloseLiveStream(self):
 		if self.streamProc is not None:
-			self.streamProc.kill()
+			# Release the reference immediately, but keep a copy ourselves to kill in the background
+			streamProc = self.streamProc
+			self.streamProc = None
+			
+			streamProc.kill()
 			print 'Waiting for process to exit'
-			self.streamProc.communicate()
-		
-		self.streamProc = None
+			streamProc.communicate()
