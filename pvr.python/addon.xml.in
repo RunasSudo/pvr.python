@@ -7,6 +7,7 @@
 	<requires>
 		<c-pluff version="0.1"/>
 		<import addon="xbmc.pvr" version="5.2.1"/>
+		<import addon="xbmc.python" version="2.1.0" />
 	</requires>
 	<extension
 		point="xbmc.pvrclient"
@@ -18,4 +19,5 @@
 		<summary lang="en_US">Python PVR Client</summary>
 		<platform>@PLATFORM@</platform>
 	</extension>
+	<extension point="xbmc.service" library="noop.py" start="login" />
 </addon>
