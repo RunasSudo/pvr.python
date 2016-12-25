@@ -56,7 +56,7 @@ class CCTVPVRImpl(BasePVR):
 		return 'connected'
 	
 	def GetBackendVersion(self):
-		return '0.0.2.0'
+		return '0.0.2.1'
 	
 	def GetBackendHostname(self):
 		return ''
