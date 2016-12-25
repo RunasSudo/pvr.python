@@ -17,7 +17,9 @@
 
 from libpvr import *
 
+import datetime
 import json
+import re
 import traceback
 import urllib, urllib2
 import urlparse
@@ -38,7 +40,7 @@ class CCTVPVRImpl(BasePVR):
 	
 	def GetAddonCapabilities(self):
 		return PVR_ERROR.NO_ERROR, {
-			'supportsEPG': False,
+			'supportsEPG': True,
 			'supportsTV': True,
 			'supportsRadio': False,
 			'supportsRecordings': False,
@@ -71,6 +73,76 @@ class CCTVPVRImpl(BasePVR):
 	
 	def GetChannelsAmount(self):
 		return len(self.channels)
+	
+	def GetEPGForChannel(self, channelId, cstartTime, cendTime):
+		startTime = datetime.datetime.fromtimestamp(cstartTime)
+		endTime = datetime.datetime.fromtimestamp(cendTime)
+		
+		def firstDTAfter(weekday, dtTime, dtAfter):
+			dt = datetime.datetime.combine(dtAfter.date(), dtTime.timetz())
+			dt += datetime.timedelta(days=((weekday - dt.isoweekday()) % 7))
+			if dt < dtAfter:
+				dt += datetime.timedelta(days=7)
+			return dt
+		
+		def lastDTBefore(weekday, dtTime, dtBefore):
+			dt = datetime.datetime.combine(dtBefore.date(), dtTime.timetz())
+			dt += datetime.timedelta(days=((weekday - dt.isoweekday()) % 7))
+			if dt > dtBefore:
+				dt -= datetime.timedelta(days=7)
+			return dt
+		
+		# The internal mktime() expects EPG times in local time, but CCTV provides them in CST (+0800)
+		timeInChina = datetime.datetime.utcnow() + datetime.timedelta(hours=8) #UTC +0800
+		localTZ = datetime.datetime.now() - datetime.datetime.utcnow() #UTC + how much?
+		tzOffset = localTZ - datetime.timedelta(hours=8) #how much ahead of China
+		def chinaToLocal(weekday, dtTime):
+			dt = datetime.datetime.combine(timeInChina, dtTime.timetz())
+			dt += datetime.timedelta(days=((weekday - dt.isoweekday()) % 7))
+			dt += tzOffset
+			return dt.isoweekday(), dt
+		
+		try:
+			handle = urllib2.urlopen('http://p2.img.cctvpic.com/photoAlbum/templet/common/DEPA1394789726596678/new_jiemudan.js')
+			data = handle.read().decode('utf-8')
+			
+			programmes = []
+			
+			# Store the data
+			matches = re.findall(r'new schedule_array\("(.*?)", "(.*?)", "(.*?)", "(.*?)"\)', data)
+			for match in matches:
+				#0 = start weekday/start time, 1 = end weekday/end time, 2 = name, 3 = next start time, 4 = next end time
+				startTimeChina = (int(match[0]), datetime.datetime.strptime(match[1], '%H%M'))
+				programmes.append([chinaToLocal(*startTimeChina), None, match[2], None, None])
+			
+			# Fill in the end times
+			for i in xrange(0, len(programmes)):
+				nextProgramme = programmes[(i + 1) % len(programmes)]
+				# End time is next programme's start time
+				programmes[i][1] = nextProgramme[0]
+			
+			# Calculate next start/end times
+			for i in xrange(0, len(programmes)):
+				# End time is first end time after startTime
+				programmes[i][4] = firstDTAfter(programmes[i][1][0], programmes[i][1][1], startTime)
+				# Start time is corresponding start time
+				programmes[i][3] = lastDTBefore(programmes[i][0][0], programmes[i][0][1], programmes[i][4])
+				
+				if programmes[i][3] <= endTime:
+					yield EPGTag(
+						uniqueBroadcastId = i + 1,
+						title = programmes[i][2],
+						channelNumber = 1,
+						startTime = programmes[i][3],
+						endTime = programmes[i][4],
+						genreType = 32
+					)
+					
+		except:
+			traceback.print_exc()
+			raise PVRListDone(PVR_ERROR.SERVER_ERROR)
+		
+		raise PVRListDone(PVR_ERROR.NO_ERROR)
 	
 	def OpenLiveStream(self, channelId):
 		try:

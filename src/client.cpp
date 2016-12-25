@@ -286,8 +286,6 @@ static PyObject* bridge_PVR_TransferEpgEntry(PyObject* self, PyObject* args)
 	EPG_TAG xbmcEntry;
 	memset(&xbmcEntry, 0, sizeof(EPG_TAG));
 	
-	XBMC->Log(LOG_DEBUG, "%s - ABC", __FUNCTION__);
-	
 	xbmcEntry.iUniqueBroadcastId = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "uniqueBroadcastId"));
 	xbmcEntry.strTitle = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "title"));
 	xbmcEntry.iChannelNumber = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "channelNumber"));
@@ -316,8 +314,6 @@ static PyObject* bridge_PVR_TransferEpgEntry(PyObject* self, PyObject* args)
 	xbmcEntry.iFlags = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "flags"));
 	
 	PVR->TransferEpgEntry(addon_handle, &xbmcEntry);
-	
-	XBMC->Log(LOG_DEBUG, "%s - DEF", __FUNCTION__);
 	
 	Py_INCREF(Py_None);
 	return Py_None;
