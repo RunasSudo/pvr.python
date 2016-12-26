@@ -61,8 +61,26 @@ bool PyBool_AsBool_DR(PyObject* obj) {
 	return val;
 }
 
-char* PyString_AsString_DR(PyObject* obj) {
-	char* val = PyString_AsString(obj);
+char* PyString_SafeAsString(PyObject* obj) {
+	char* cString;
+	if (PyUnicode_Check(obj)) {
+		// Encode the Unicode as ASCII if necessary
+		PyObject* pyString = PyUnicode_AsEncodedString(obj, "ascii", "ignore");
+		cString = PyString_AsString(pyString);
+		Py_DECREF(pyString);
+	} else {
+		cString = PyString_AsString(obj);
+	}
+	
+	// Copy the string
+	char* cString2 = (char*) malloc(strlen(cString) + 1); // +1 for the NUL
+	strcpy(cString2, cString);
+	
+	return cString2;
+}
+
+char* PyString_SafeAsString_DR(PyObject* obj) {
+	char* val = PyString_SafeAsString(obj);
 	Py_DECREF(obj);
 	return val;
 }
@@ -92,16 +110,16 @@ PyObject* pyLockCall(PyObject* obj, const char* func, PyObject* args) {
 	return pyReturnValue;
 }
 
-const char* pyCallString(PyObject* obj, const char* func, PyObject* args) {
+char* pyCallString(PyObject* obj, const char* func, PyObject* args) {
 	PyObject* pyReturnValue = pyCall(obj, func, args);
-	char* returnValue = PyString_AsString(pyReturnValue);
+	char* returnValue = PyString_SafeAsString(pyReturnValue);
 	Py_DECREF(pyReturnValue);
 	return returnValue;
 }
 
-const char* pyLockCallString(PyObject* obj, const char* func, PyObject* args) {
+char* pyLockCallString(PyObject* obj, const char* func, PyObject* args) {
 	PYTHON_LOCK();
-	const char* returnValue = pyCallString(obj, func, args);
+	char* returnValue = pyCallString(obj, func, args);
 	PYTHON_UNLOCK();
 	return returnValue;
 }
@@ -168,11 +186,11 @@ static PyObject* bridge_PVR_TransferChannelEntry(PyObject* self, PyObject* args)
 	xbmcChannel.bIsRadio = PyBool_AsBool_DR(PyObject_GetAttrString(pyChannel, "isRadio"));
 	xbmcChannel.iChannelNumber = PyInt_AsLong_DR(PyObject_GetAttrString(pyChannel, "channelNumber"));
 	xbmcChannel.iSubChannelNumber = PyInt_AsLong_DR(PyObject_GetAttrString(pyChannel, "subChannelNumber"));
-	strcpy(xbmcChannel.strChannelName, PyString_AsString_DR(PyObject_GetAttrString(pyChannel, "channelName")));
-	strcpy(xbmcChannel.strInputFormat, PyString_AsString_DR(PyObject_GetAttrString(pyChannel, "inputFormat")));
-	strcpy(xbmcChannel.strStreamURL, PyString_AsString_DR(PyObject_GetAttrString(pyChannel, "streamURL")));
+	strcpy(xbmcChannel.strChannelName, PyString_SafeAsString_DR(PyObject_GetAttrString(pyChannel, "channelName")));
+	strcpy(xbmcChannel.strInputFormat, PyString_SafeAsString_DR(PyObject_GetAttrString(pyChannel, "inputFormat")));
+	strcpy(xbmcChannel.strStreamURL, PyString_SafeAsString_DR(PyObject_GetAttrString(pyChannel, "streamURL")));
 	xbmcChannel.iEncryptionSystem = PyInt_AsLong_DR(PyObject_GetAttrString(pyChannel, "encryptionSystem"));
-	strcpy(xbmcChannel.strIconPath, PyString_AsString_DR(PyObject_GetAttrString(pyChannel, "iconPath")));
+	strcpy(xbmcChannel.strIconPath, PyString_SafeAsString_DR(PyObject_GetAttrString(pyChannel, "iconPath")));
 	xbmcChannel.bIsHidden = PyBool_AsBool_DR(PyObject_GetAttrString(pyChannel, "isHidden"));
 	
 	PVR->TransferChannelEntry(addon_handle, &xbmcChannel);
@@ -188,7 +206,7 @@ static PyObject* bridge_PVR_TransferChannelGroup(PyObject* self, PyObject* args)
 	PVR_CHANNEL_GROUP xbmcGroup;
 	memset(&xbmcGroup, 0, sizeof(PVR_CHANNEL_GROUP));
 	
-	strcpy(xbmcGroup.strGroupName, PyString_AsString_DR(PyObject_GetAttrString(pyGroup, "groupName")));
+	strcpy(xbmcGroup.strGroupName, PyString_SafeAsString_DR(PyObject_GetAttrString(pyGroup, "groupName")));
 	xbmcGroup.bIsRadio = PyBool_AsBool_DR(PyObject_GetAttrString(pyGroup, "isRadio"));
 	xbmcGroup.iPosition = PyInt_AsLong_DR(PyObject_GetAttrString(pyGroup, "position"));
 	
@@ -205,7 +223,7 @@ static PyObject* bridge_PVR_TransferChannelGroupMember(PyObject* self, PyObject*
 	PVR_CHANNEL_GROUP_MEMBER xbmcGroupMember;
 	memset(&xbmcGroupMember, 0, sizeof(PVR_CHANNEL_GROUP_MEMBER));
 	
-	strcpy(xbmcGroupMember.strGroupName, PyString_AsString_DR(PyObject_GetAttrString(pyGroupMember, "groupName")));
+	strcpy(xbmcGroupMember.strGroupName, PyString_SafeAsString_DR(PyObject_GetAttrString(pyGroupMember, "groupName")));
 	xbmcGroupMember.iChannelUniqueId = PyInt_AsLong_DR(PyObject_GetAttrString(pyGroupMember, "channelUniqueId"));
 	xbmcGroupMember.iChannelNumber = PyInt_AsLong_DR(PyObject_GetAttrString(pyGroupMember, "channelNumber"));
 	
@@ -231,11 +249,11 @@ static PyObject* bridge_PVR_TransferTimerEntry(PyObject* self, PyObject* args)
 	xbmcEntry.bEndAnyTime = PyBool_AsBool_DR(PyObject_GetAttrString(pyEntry, "endAnyTime"));
 	xbmcEntry.state = (PVR_TIMER_STATE) PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "state"));
 	xbmcEntry.iTimerType = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "timerType"));
-	strcpy(xbmcEntry.strTitle, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "title")));
-	strcpy(xbmcEntry.strEpgSearchString, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "epgSearchString")));
+	strcpy(xbmcEntry.strTitle, PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "title")));
+	strcpy(xbmcEntry.strEpgSearchString, PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "epgSearchString")));
 	xbmcEntry.bFullTextEpgSearch = PyBool_AsBool_DR(PyObject_GetAttrString(pyEntry, "fullTextEpgSearch"));
-	strcpy(xbmcEntry.strDirectory, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "directory")));
-	strcpy(xbmcEntry.strSummary, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "summary")));
+	strcpy(xbmcEntry.strDirectory, PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "directory")));
+	strcpy(xbmcEntry.strSummary, PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "summary")));
 	xbmcEntry.iPriority = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "priority"));
 	xbmcEntry.iLifetime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "lifetime"));
 	xbmcEntry.iMaxRecordings = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "maxRecordings"));
@@ -262,20 +280,20 @@ static PyObject* bridge_PVR_TransferRecordingEntry(PyObject* self, PyObject* arg
 	PVR_RECORDING xbmcEntry;
 	memset(&xbmcEntry, 0, sizeof(PVR_RECORDING));
 	
-	strcpy(xbmcEntry.strRecordingId, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "recordingId")));
-	strcpy(xbmcEntry.strTitle, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "title")));
-	strcpy(xbmcEntry.strEpisodeName, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "episodeName")));
+	strcpy(xbmcEntry.strRecordingId, PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "recordingId")));
+	strcpy(xbmcEntry.strTitle, PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "title")));
+	strcpy(xbmcEntry.strEpisodeName, PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "episodeName")));
 	xbmcEntry.iSeriesNumber = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "seriesNumber"));
 	xbmcEntry.iEpisodeNumber = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "episodeNumber"));
 	xbmcEntry.iYear = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "year"));
-	strcpy(xbmcEntry.strStreamURL, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "streamURL")));
-	strcpy(xbmcEntry.strDirectory, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "directory")));
-	strcpy(xbmcEntry.strPlotOutline, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "plotOutline")));
-	strcpy(xbmcEntry.strPlot, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "plot")));
-	strcpy(xbmcEntry.strChannelName, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "channelName")));
-	strcpy(xbmcEntry.strIconPath, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "iconPath")));
-	strcpy(xbmcEntry.strThumbnailPath, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "thumbnailPath")));
-	strcpy(xbmcEntry.strFanartPath, PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "fanartPath")));
+	strcpy(xbmcEntry.strStreamURL, PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "streamURL")));
+	strcpy(xbmcEntry.strDirectory, PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "directory")));
+	strcpy(xbmcEntry.strPlotOutline, PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "plotOutline")));
+	strcpy(xbmcEntry.strPlot, PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "plot")));
+	strcpy(xbmcEntry.strChannelName, PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "channelName")));
+	strcpy(xbmcEntry.strIconPath, PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "iconPath")));
+	strcpy(xbmcEntry.strThumbnailPath, PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "thumbnailPath")));
+	strcpy(xbmcEntry.strFanartPath, PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "fanartPath")));
 	xbmcEntry.recordingTime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "_crecordingTime"));
 	xbmcEntry.iDuration = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "duration"));
 	xbmcEntry.iPriority = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "priority"));
@@ -304,22 +322,22 @@ static PyObject* bridge_PVR_TransferEpgEntry(PyObject* self, PyObject* args)
 	memset(&xbmcEntry, 0, sizeof(EPG_TAG));
 	
 	xbmcEntry.iUniqueBroadcastId = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "uniqueBroadcastId"));
-	xbmcEntry.strTitle = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "title"));
+	xbmcEntry.strTitle = PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "title"));
 	xbmcEntry.iChannelNumber = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "channelNumber"));
 	xbmcEntry.startTime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "_cstartTime"));
 	xbmcEntry.endTime = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "_cendTime"));
-	xbmcEntry.strPlotOutline = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "plotOutline"));
-	xbmcEntry.strPlot = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "plot"));
-	xbmcEntry.strOriginalTitle = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "originalTitle"));
-	xbmcEntry.strCast = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "cast"));
-	xbmcEntry.strDirector = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "director"));
-	xbmcEntry.strWriter = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "writer"));
+	xbmcEntry.strPlotOutline = PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "plotOutline"));
+	xbmcEntry.strPlot = PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "plot"));
+	xbmcEntry.strOriginalTitle = PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "originalTitle"));
+	xbmcEntry.strCast = PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "cast"));
+	xbmcEntry.strDirector = PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "director"));
+	xbmcEntry.strWriter = PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "writer"));
 	xbmcEntry.iYear = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "year"));
-	xbmcEntry.strIMDBNumber = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "IMDBNumber"));
-	xbmcEntry.strIconPath = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "iconPath"));
+	xbmcEntry.strIMDBNumber = PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "IMDBNumber"));
+	xbmcEntry.strIconPath = PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "iconPath"));
 	xbmcEntry.iGenreType = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "genreType"));
 	xbmcEntry.iGenreSubType = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "genreSubType"));
-	xbmcEntry.strGenreDescription = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "genreDescription"));
+	xbmcEntry.strGenreDescription = PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "genreDescription"));
 	xbmcEntry.firstAired = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "_cfirstAired"));
 	xbmcEntry.iParentalRating = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "parentalRating"));
 	xbmcEntry.iStarRating = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "starRating"));
@@ -327,7 +345,7 @@ static PyObject* bridge_PVR_TransferEpgEntry(PyObject* self, PyObject* args)
 	xbmcEntry.iSeriesNumber = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "seriesNumber"));
 	xbmcEntry.iEpisodeNumber = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "episodeNumber"));
 	xbmcEntry.iEpisodePartNumber = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "episodePartNumber"));
-	xbmcEntry.strEpisodeName = PyString_AsString_DR(PyObject_GetAttrString(pyEntry, "episodeName"));
+	xbmcEntry.strEpisodeName = PyString_SafeAsString_DR(PyObject_GetAttrString(pyEntry, "episodeName"));
 	xbmcEntry.iFlags = PyInt_AsLong_DR(PyObject_GetAttrString(pyEntry, "flags"));
 	
 	PVR->TransferEpgEntry(addon_handle, &xbmcEntry);
@@ -708,7 +726,7 @@ bool OpenLiveStream(const PVR_CHANNEL &channel)
 		// Are we offloading the file handling to Kodi?
 		if (returnValue && PyTuple_Size(pyReturnValue) > 1) {
 			// We are!
-			char* fileName = PyString_AsString(PyTuple_GetItem(pyReturnValue, 1));
+			char* fileName = PyString_SafeAsString(PyTuple_GetItem(pyReturnValue, 1));
 			
 			streamHandle = XBMC->OpenFile(fileName, 0);
 			
@@ -741,7 +759,7 @@ int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize) {
 		int bytesRead = PyInt_AsLong(PyTuple_GetItem(pyReturnValue, 0));
 		
 		if (bytesRead > 0) {
-			char* contents = PyString_AsString(PyTuple_GetItem(pyReturnValue, 1));
+			char* contents = PyString_SafeAsString(PyTuple_GetItem(pyReturnValue, 1));
 			memcpy(pBuffer, contents, bytesRead);
 		}
 		

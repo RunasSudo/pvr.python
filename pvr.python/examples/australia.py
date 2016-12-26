@@ -39,17 +39,6 @@ def getInstance():
 USER_AGENT = 'Mozilla/5.0 (X11; Linux x86_64; rv:49.0) Gecko/20100101 Firefox/49.0'
 AKAMAIHD_PV_KEY = bytearray.fromhex('bd938d5ee6d9f42016f9c56577b6fdcf415fe4b184932b785ab32bcadc9bb592')
 
-def magicStrptime(data, fmt):
-	# Sometimes strptime fails once with UnicodeEncodeError but works immediately afterwards, and I don't know why.
-	# I'm scared...
-	for i in xrange(0, 5):
-		try:
-			return datetime.datetime.strptime(data, fmt)
-			break
-		except Exception as ex:
-			if i == 4:
-				raise ex
-
 class ABCPVRImpl(BasePVR):
 	def loadData(self, props):
 		self.clientPath = props['clientPath']
@@ -293,8 +282,8 @@ class ABCHelper:
 			for i, channelEntry in enumerate(epgJson['schedule']):
 				if channelEntry['channel'] == channel._data['epgChannel']:
 					for listingEntry in channelEntry['listing']:
-						epgStartTime = sydneyToLocal(magicStrptime(listingEntry['start_time'], '%Y-%m-%dT%H:%M:%S'))
-						epgEndTime = sydneyToLocal(magicStrptime(listingEntry['end_time'], '%Y-%m-%dT%H:%M:%S'))
+						epgStartTime = sydneyToLocal(datetime.datetime.strptime(listingEntry['start_time'], '%Y-%m-%dT%H:%M:%S'))
+						epgEndTime = sydneyToLocal(datetime.datetime.strptime(listingEntry['end_time'], '%Y-%m-%dT%H:%M:%S'))
 						
 						if epgStartTime <= endTime and epgEndTime >= startTime:
 							# Dodgy method of generating a unique id
@@ -471,7 +460,7 @@ class SevenHelper:
 			epgId = 500000 + programme['content_id']
 			genre = self.getGenre(programme)
 			pStartTime = programme['start_time']
-			epgStartTime = magicStrptime(pStartTime[:pStartTime.index('.')], '%Y-%m-%dT%H:%M:%S') + localTZ
+			epgStartTime = datetime.datetime.strptime(pStartTime[:pStartTime.index('.')], '%Y-%m-%dT%H:%M:%S') + localTZ
 			epgEndTime = epgStartTime + datetime.timedelta(minutes=programme['duration'])
 			
 			yield EPGTag(
