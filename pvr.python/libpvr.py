@@ -221,15 +221,19 @@ class BasePVR:
 		return PVR_ERROR.NOT_IMPLEMENTED
 	
 	def GetBackendName(self):
+		bridge.XBMC_Log('GetBackendName - NYI')
 		return 'python pvr base backend'
 	
 	def GetConnectionString(self):
+		bridge.XBMC_Log('GetConnectionString - NYI')
 		return 'connected'
 	
 	def GetBackendVersion(self):
+		bridge.XBMC_Log('GetBackendVersion - NYI')
 		return '0.0.2.1'
 	
 	def GetBackendHostname(self):
+		bridge.XBMC_Log('GetBackendHostname - NYI')
 		return ''
 	
 	@force_generator
