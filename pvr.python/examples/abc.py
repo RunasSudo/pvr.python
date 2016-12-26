@@ -215,7 +215,11 @@ class ABCPVRImpl(BasePVR):
 		# Load the EPG pages
 		date = startTime.replace(hour=0,minute=0,second=0,microsecond=0)
 		while date < endTime:
-			handle = urllib2.urlopen('http://epg.abctv.net.au/processed/Sydney_{}-{}-{}.json'.format(date.year, date.month, date.day))
+			try:
+				handle = urllib2.urlopen('http://epg.abctv.net.au/processed/Sydney_{}-{}-{}.json'.format(date.year, date.month, date.day))
+			except Exception as ex:
+				traceback.print_exc()
+				raise PVRListDone(PVR_ERROR.SERVER_ERROR)
 			if handle.info().get('Content-Encoding') == 'gzip':
 				handle = gzip.GzipFile(fileobj=StringIO.StringIO(handle.read()))
 			
