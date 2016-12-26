@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <addon
 	id="pvr.python"
-	version="0.0.2.2"
+	version="0.0.2.4"
 	name="PVR Python Client"
 	provider-name="RunasSudo">
 	<requires>
