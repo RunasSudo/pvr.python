@@ -34,7 +34,8 @@ class PVRChannel:
 	             streamURL = '',
 	             encryptionSystem = 0,
 	             iconPath = '',
-	             isHidden = False
+	             isHidden = False,
+	             _data = {} # Internal data
 	):
 		for k, v in locals().items():
 			setattr(self, k, v)
