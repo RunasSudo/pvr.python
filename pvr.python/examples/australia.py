@@ -192,7 +192,6 @@ class ABCHelper:
 			)
 		]
 	
-	# http://forum.kodi.tv/showthread.php?tid=146527&pid=1250345#pid1250345
 	def getGenre(self, listingEntry):
 		genreNos = []
 		genreOthers = []
@@ -393,8 +392,66 @@ class SevenHelper:
 				channelName = '7mate Adelaide',
 				streamURL = 'https://sevenwestmedia01-i.akamaihd.net/hls/live/224842/ADE3/master_high.m3u8',
 				_data = { 'helper': self, 'epgId': '9' }
+			),
+			PVRChannel(
+				uniqueId = 14,
+				isRadio = False,
+				channelNumber = 76,
+				channelName = '7flix Adelaide',
+				streamURL = 'https://sevenwestmedia01-i.akamaihd.net/hls/live/224859/ADE6/master_high.m3u8',
+				_data = { 'helper': self, 'epgId': '42' }
 			)
 		]
+	
+	def getGenre(self, item):
+		genreNos = []
+		genreOthers = []
+		genre = item['program_genre']
+		if genre == 'GAME SHOW':
+			genreNos.append((0x30, 0x01))
+		elif genre == 'OTHER NEWS/CURRENT AFFAIRS' or genre == 'NEWS' or genre == 'CURRENT AFFAIRS':
+			genreNos.append((0x20, 0x00))
+		elif genre == 'OTHER DRAMA SERIES' or genre == 'DRAMA MOVIE' or genre == 'OTHER MOVIE' or genre == 'DRAMA SERIAL':
+			genreNos.append((0x10, 0x00))
+		elif genre == 'COMEDY MOVIE' or genre == 'SITUATION COMEDY' or genre == 'SKETCH COMEDY':
+			genreNos.append((0x10, 0x04))
+		elif genre == 'THRILLER MOVIE':
+			genreNos.append((0x10, 0x01))
+		elif genre == 'SITUATIONAL COMEDY':
+			genreNos.append((0x10, 0x03))
+		elif genre == 'ANIMALS':
+			genreNos.append((0x90, 0x01))
+		elif genre == 'RELIGIOUS PROGRAMS':
+			genreNos.append((0x70, 0x03))
+		elif genre == 'HEALTH':
+			genreNos.append((0xA0, 0x04))
+		elif genre == 'CHILDREN\'S ANIMATED' or genre == 'OTHER CHILDREN\'S PROGRAM':
+			genreNos.append((0x50, 0x00))
+		elif genre == 'PRE-SCHOOL PROGRAM':
+			genreNos.append((0x50, 0x01))
+		elif genre == 'COOKING':
+			genreNos.append((0xA0, 0x05))
+		elif genre == 'OTHER DOCUMENTARY SERIES' or genre == 'DOCUMENTARY ONE-OFF':
+			genreNos.append((0x20, 0x03))
+		elif genre == 'OTHER INFORMATION':
+			genreNos.append((0x90, 0x00))
+		elif genre == 'TRAVEL':
+			genreNos.append((0xA0, 0x01))
+		elif genre == 'OTHER PROGRAM':
+			genreNos.append((0x00, 0x00))
+		elif genre == 'SPORTS OTHER':
+			genreNos.append((0x40, 0x00))
+		elif genre == 'MUSIC PERFORMANCE':
+			genreNos.append((0x60, 0x00))
+		else:
+			genreOthers.append(genre.title())
+		
+		if len(genreNos) > 0:
+			return (genreNos[0][0], genreNos[0][1], '')
+		elif len(genreOthers) > 0:
+			return (256, 0, genreOthers[0])
+		else:
+			return (0, 0, '')
 	
 	def GetEPGForChannel(self, channel, startTime, endTime):
 		localTZ = datetime.datetime.now() - datetime.datetime.utcnow() #UTC + how much?
@@ -412,6 +469,7 @@ class SevenHelper:
 		
 		for programme in epgJson['schedule']:
 			epgId = 500000 + programme['content_id']
+			genre = self.getGenre(programme)
 			pStartTime = programme['start_time']
 			epgStartTime = magicStrptime(pStartTime[:pStartTime.index('.')], '%Y-%m-%dT%H:%M:%S') + localTZ
 			epgEndTime = epgStartTime + datetime.timedelta(minutes=programme['duration'])
@@ -427,6 +485,9 @@ class SevenHelper:
 				originalTitle = programme['program_title'] if 'program_title' in programme else '',
 				cast = programme['cast'] if 'cast' in programme else '',
 				year = programme['year_released'] if 'year_released' in programme else 0,
+				genreType = genre[0],
+				genreSubType = genre[1],
+				genreDescription = genre[2],
 				episodeName = programme['episode_title'] if 'episode_title' in programme else ''
 			)
 		
