@@ -329,3 +329,9 @@ class ABCPVRImpl(BasePVR):
 			streamProc.kill()
 			print 'Waiting for process to exit'
 			streamProc.communicate()
+	
+	def CanPauseStream(self):
+		return True
+	
+	def CanSeekStream(self):
+		return True

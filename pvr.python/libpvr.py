@@ -345,6 +345,14 @@ class BasePVR:
 	def LengthLiveStream(self):
 		bridge.XBMC_Log('LengthLiveStream - NYI')
 		return -1
+	
+	def CanPauseStream(self):
+		bridge.XBMC_Log('CanPauseStream - NYI')
+		return False
+	
+	def CanSeekStream(self):
+		bridge.XBMC_Log('CanSeekStream - NYI')
+		return False
 
 # Enums
 

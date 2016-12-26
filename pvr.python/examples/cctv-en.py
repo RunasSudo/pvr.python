@@ -163,3 +163,9 @@ class CCTVPVRImpl(BasePVR):
 	def CloseLiveStream(self):
 		# This will only be called if no file is currently playing
 		pass
+	
+	def CanPauseStream(self):
+		return True
+	
+	def CanSeekStream(self):
+		return True

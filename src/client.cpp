@@ -127,6 +127,20 @@ PVR_ERROR pyLockCallPVRError(PyObject* obj, const char* func, PyObject* args) {
 	return ((PVR_ERROR) returnValue);
 }
 
+bool pyCallBool(PyObject* obj, const char* func, PyObject* args) {
+	PyObject* pyReturnValue = pyCall(obj, func, args);
+	bool returnValue = PyBool_AsBool(pyReturnValue);
+	Py_DECREF(pyReturnValue);
+	return returnValue;
+}
+
+bool pyLockCallBool(PyObject* obj, const char* func, PyObject* args) {
+	PYTHON_LOCK();
+	bool returnValue = pyCallBool(obj, func, args);
+	PYTHON_UNLOCK();
+	return returnValue;
+}
+
 // BEGIN C->PYTHON BRIDGE FUNCTIONS
 
 static PyObject* bridge_XBMC_Log(PyObject* self, PyObject* args)
@@ -783,6 +797,17 @@ void CloseLiveStream(void)
 	}
 }
 
+bool CanPauseStream(void) {
+	//MAYBE_LOG_CALL(); // Lots of calls.
+	return pyLockCallBool(pvrImpl, "CanPauseStream", NULL);
+}
+
+// Apparently the pause button only works if we can also seek.
+bool CanSeekStream(void) {
+	//MAYBE_LOG_CALL(); // Lots of calls.
+	return pyLockCallBool(pvrImpl, "CanSeekStream", NULL);
+}
+
 PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 {
 	//MAYBE_LOG_CALL(); // This gets called a lot.
@@ -852,11 +877,9 @@ PVR_ERROR UpdateTimer(const PVR_TIMER &timer) { return PVR_ERROR_NOT_IMPLEMENTED
 void DemuxAbort(void) {}
 DemuxPacket* DemuxRead(void) { return NULL; }
 unsigned int GetChannelSwitchDelay(void) { return 0; }
-void PauseStream(bool bPaused) {}
-bool CanPauseStream(void) { return false; }
-bool CanSeekStream(void) { return false; }
+void PauseStream(bool bPaused) { MAYBE_LOG_NYI(); } // This seemingly never actually gets called.
 bool SeekTime(double,bool,double*) { return false; }
-void SetSpeed(int) {};
+void SetSpeed(int) { MAYBE_LOG_NYI(); };
 bool IsTimeshifting(void) { return false; }
 bool IsRealTimeStream(void) { return true; }
 time_t GetPlayingTime() { return 0; }
