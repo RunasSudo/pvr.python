@@ -167,7 +167,7 @@ class DemoPVRImpl(BasePVR):
 		return 'connected'
 	
 	def GetBackendVersion(self):
-		return '0.0.2.0'
+		return '0.0.2.3'
 	
 	def GetBackendHostname(self):
 		return ''
@@ -229,3 +229,9 @@ class DemoPVRImpl(BasePVR):
 					yield entry
 		
 		raise PVRListDone(PVR_ERROR.NO_ERROR)
+	
+	def CanPauseStream(self):
+		return True
+	
+	def CanSeekStream(self):
+		return True

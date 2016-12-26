@@ -56,7 +56,7 @@ class CCTVPVRImpl(BasePVR):
 		return 'connected'
 	
 	def GetBackendVersion(self):
-		return '0.0.2.1'
+		return '0.0.2.3'
 	
 	def GetBackendHostname(self):
 		return ''
@@ -163,3 +163,9 @@ class CCTVPVRImpl(BasePVR):
 	def CloseLiveStream(self):
 		# This will only be called if no file is currently playing
 		pass
+	
+	def CanPauseStream(self):
+		return True
+	
+	def CanSeekStream(self):
+		return True

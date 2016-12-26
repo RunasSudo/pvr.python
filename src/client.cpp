@@ -37,6 +37,9 @@ ADDON_HANDLE addon_handle;
 
 extern "C" {
 
+#define MAYBE_LOG_CALL() XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+#define MAYBE_LOG_NYI() XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+
 #define PYTHON_LOCK() PyEval_AcquireLock(); PyThreadState_Swap(pyState);
 #define PYTHON_UNLOCK() PyThreadState_Swap(NULL); PyEval_ReleaseLock();
 
@@ -122,6 +125,20 @@ PVR_ERROR pyLockCallPVRError(PyObject* obj, const char* func, PyObject* args) {
 	int returnValue = pyCallInt(obj, func, args);
 	PYTHON_UNLOCK();
 	return ((PVR_ERROR) returnValue);
+}
+
+bool pyCallBool(PyObject* obj, const char* func, PyObject* args) {
+	PyObject* pyReturnValue = pyCall(obj, func, args);
+	bool returnValue = PyBool_AsBool(pyReturnValue);
+	Py_DECREF(pyReturnValue);
+	return returnValue;
+}
+
+bool pyLockCallBool(PyObject* obj, const char* func, PyObject* args) {
+	PYTHON_LOCK();
+	bool returnValue = pyCallBool(obj, func, args);
+	PYTHON_UNLOCK();
+	return returnValue;
 }
 
 // BEGIN C->PYTHON BRIDGE FUNCTIONS
@@ -416,7 +433,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 
 ADDON_STATUS ADDON_GetStatus()
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	MAYBE_LOG_NYI();
 	return (ADDON_STATUS)6;
 	
 	//return m_CurStatus;
@@ -424,7 +441,7 @@ ADDON_STATUS ADDON_GetStatus()
 
 void ADDON_Destroy()
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	MAYBE_LOG_NYI();
 	PYTHON_LOCK();
 	Py_EndInterpreter(pyState);
 	PYTHON_UNLOCK();
@@ -437,30 +454,30 @@ void ADDON_Destroy()
 
 bool ADDON_HasSettings()
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	MAYBE_LOG_NYI();
 	return true;
 }
 
 unsigned int ADDON_GetSettings(ADDON_StructSetting ***sSet)
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	MAYBE_LOG_NYI();
 	return 0;
 }
 
 ADDON_STATUS ADDON_SetSetting(const char *settingName, const void *settingValue)
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	MAYBE_LOG_NYI();
 	return ADDON_STATUS_OK;
 }
 
 void ADDON_Stop()
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	MAYBE_LOG_NYI();
 }
 
 void ADDON_FreeSettings()
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	MAYBE_LOG_NYI();
 }
 
 /***********************************************************
@@ -469,7 +486,7 @@ void ADDON_FreeSettings()
 
 PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	
 	PYTHON_LOCK();
 	
@@ -507,31 +524,31 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 
 const char *GetBackendName(void)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	return pyLockCallString(pvrImpl, "GetBackendName", NULL);
 }
 
 const char *GetConnectionString(void)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	return pyLockCallString(pvrImpl, "GetConnectionString", NULL);
 }
 
 const char *GetBackendVersion(void)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	return pyLockCallString(pvrImpl, "GetBackendVersion", NULL);
 }
 
 const char *GetBackendHostname(void)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	return pyLockCallString(pvrImpl, "GetBackendHostname", NULL);
 }
 
 PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	
 	addon_handle = handle;
 	return pyLockCallPVRError(pvrImpl, "_cGetChannels", Py_BuildValue("(b)", bRadio));
@@ -539,7 +556,7 @@ PVR_ERROR GetChannels(ADDON_HANDLE handle, bool bRadio)
 
 PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	
 	addon_handle = handle;
 	return pyLockCallPVRError(pvrImpl, "_cGetChannelGroups", Py_BuildValue("(b)", bRadio));
@@ -547,7 +564,7 @@ PVR_ERROR GetChannelGroups(ADDON_HANDLE handle, bool bRadio)
 
 PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, const PVR_CHANNEL_GROUP &group)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	
 	addon_handle = handle;
 	return pyLockCallPVRError(pvrImpl, "_cGetChannelGroupMembers", Py_BuildValue("(s)", group.strGroupName));
@@ -555,7 +572,7 @@ PVR_ERROR GetChannelGroupMembers(ADDON_HANDLE handle, const PVR_CHANNEL_GROUP &g
 
 PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int *size)
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	MAYBE_LOG_NYI();
 	
 	/* TODO: Implement this to get support for the timer features introduced with PVR API 1.9.7 */
 	return PVR_ERROR_NOT_IMPLEMENTED;
@@ -563,7 +580,7 @@ PVR_ERROR GetTimerTypes(PVR_TIMER_TYPE types[], int *size)
 
 PVR_ERROR GetTimers(ADDON_HANDLE handle)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	
 	addon_handle = handle;
 	/* TODO: Change implementation to get support for the timer features introduced with PVR API 1.9.7 */
@@ -572,7 +589,7 @@ PVR_ERROR GetTimers(ADDON_HANDLE handle)
 
 PVR_ERROR GetRecordings(ADDON_HANDLE handle, bool deleted)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	
 	addon_handle = handle;
 	return pyLockCallPVRError(pvrImpl, "_cGetRecordings", Py_BuildValue("(b)", deleted));
@@ -580,7 +597,7 @@ PVR_ERROR GetRecordings(ADDON_HANDLE handle, bool deleted)
 
 PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	
 	PYTHON_LOCK();
 	
@@ -602,25 +619,25 @@ PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
 
 int GetChannelsAmount(void)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	return pyLockCallInt(pvrImpl, "GetChannelsAmount", NULL);
 }
 
 int GetTimersAmount(void)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	return pyLockCallInt(pvrImpl, "GetTimersAmount", NULL);
 }
 
 int GetRecordingsAmount(bool deleted)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	return pyLockCallInt(pvrImpl, "GetRecordingsAmount", Py_BuildValue("(b)", deleted));
 }
 
 PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &channel, time_t iStart, time_t iEnd)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	
 	addon_handle = handle;
 	return pyLockCallPVRError(pvrImpl, "_cGetEPGForChannel", Py_BuildValue("(i, i, i)", channel.iUniqueId, iStart, iEnd));
@@ -628,22 +645,22 @@ PVR_ERROR GetEPGForChannel(ADDON_HANDLE handle, const PVR_CHANNEL &channel, time
 
 void OnSystemSleep()
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	MAYBE_LOG_NYI();
 }
 
 void OnSystemWake()
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	MAYBE_LOG_NYI();
 }
 
 void OnPowerSavingActivated()
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	MAYBE_LOG_NYI();
 }
 
 void OnPowerSavingDeactivated()
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	MAYBE_LOG_NYI();
 }
 
 const char* GetPVRAPIVersion(void)
@@ -670,19 +687,16 @@ const char* GetMininumGUIAPIVersion(void)
 
 bool OpenLiveStream(const PVR_CHANNEL &channel)
 {
-	XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	
 	CloseLiveStream();
 	
 	PYTHON_LOCK();
 	
-	if (PyErr_Occurred() != NULL) { XBMC->Log(LOG_DEBUG, "%s - D", __FUNCTION__); PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return false; }
 	PyObject* pyFunc = PyObject_GetAttrString(pvrImpl, "OpenLiveStream");
-	if (PyErr_Occurred() != NULL) { XBMC->Log(LOG_DEBUG, "%s - A", __FUNCTION__); PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return false; }
 	PyObject* pyArgs = Py_BuildValue("(i)", channel.iUniqueId);
-	if (PyErr_Occurred() != NULL) { XBMC->Log(LOG_DEBUG, "%s - B", __FUNCTION__); PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return false; }
 	PyObject* pyReturnValue = PyObject_CallObject(pyFunc, pyArgs);
-	if (PyErr_Occurred() != NULL) { XBMC->Log(LOG_DEBUG, "%s - C", __FUNCTION__); PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return false; }
+	if (PyErr_Occurred() != NULL) { PyErr_Print(); PyErr_Clear(); PYTHON_UNLOCK(); return false; }
 	
 	bool returnValue;
 	
@@ -718,7 +732,7 @@ bool OpenLiveStream(const PVR_CHANNEL &channel)
 }
 
 int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize) {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	//MAYBE_LOG_CALL(); // This gets called a lot.
 	
 	if (!streamHandle) {
 		PYTHON_LOCK();
@@ -742,7 +756,7 @@ int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize) {
 }
 
 long long SeekLiveStream(long long iPosition, int iWhence /* = SEEK_SET */) {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	
 	if (!streamHandle) {
 		return pyLockCallInt(pvrImpl, "SeekLiveStream", Py_BuildValue("(i, i)", iPosition, iWhence));
@@ -752,7 +766,7 @@ long long SeekLiveStream(long long iPosition, int iWhence /* = SEEK_SET */) {
 }
 
 long long PositionLiveStream(void) {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	
 	if (!streamHandle) {
 		return pyLockCallInt(pvrImpl, "PositionLiveStream", NULL);
@@ -762,7 +776,7 @@ long long PositionLiveStream(void) {
 }
 
 long long LengthLiveStream(void) {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	
 	if (!streamHandle) {
 		return pyLockCallInt(pvrImpl, "LengthLiveStream", NULL);
@@ -773,7 +787,7 @@ long long LengthLiveStream(void) {
 
 void CloseLiveStream(void)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	MAYBE_LOG_CALL();
 	
 	if (!streamHandle) {
 		pyLockCall(pvrImpl, "CloseLiveStream", NULL);
@@ -783,9 +797,20 @@ void CloseLiveStream(void)
 	}
 }
 
+bool CanPauseStream(void) {
+	//MAYBE_LOG_CALL(); // Lots of calls.
+	return pyLockCallBool(pvrImpl, "CanPauseStream", NULL);
+}
+
+// Apparently the pause button only works if we can also seek.
+bool CanSeekStream(void) {
+	//MAYBE_LOG_CALL(); // Lots of calls.
+	return pyLockCallBool(pvrImpl, "CanSeekStream", NULL);
+}
+
 PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 {
-	//XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+	//MAYBE_LOG_CALL(); // This gets called a lot.
 	
 	strcpy(signalStatus.strAdapterStatus, "OK");
 	
@@ -799,7 +824,7 @@ PVR_ERROR SignalStatus(PVR_SIGNAL_STATUS &signalStatus)
 
 bool SwitchChannel(const PVR_CHANNEL &channel)
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	MAYBE_LOG_NYI();
 	
 	CloseLiveStream();
 	
@@ -808,13 +833,13 @@ bool SwitchChannel(const PVR_CHANNEL &channel)
 
 PVR_ERROR GetStreamProperties(PVR_STREAM_PROPERTIES* pProperties)
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	MAYBE_LOG_NYI();
 	return PVR_ERROR_NOT_IMPLEMENTED;
 }
 
 int GetChannelGroupsAmount(void)
 {
-	XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+	MAYBE_LOG_NYI();
 	return -1;
 	
 	//if (m_data)
@@ -839,7 +864,7 @@ long long PositionRecordedStream(void) { return -1; }
 long long LengthRecordedStream(void) { return 0; }
 void DemuxReset(void) {}
 void DemuxFlush(void) {}
-const char * GetLiveStreamURL(const PVR_CHANNEL &channel) { XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__); return ""; }
+const char * GetLiveStreamURL(const PVR_CHANNEL &channel) { MAYBE_LOG_NYI(); return ""; }
 PVR_ERROR DeleteRecording(const PVR_RECORDING &recording) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR RenameRecording(const PVR_RECORDING &recording) { return PVR_ERROR_NOT_IMPLEMENTED; }
 PVR_ERROR SetRecordingPlayCount(const PVR_RECORDING &recording, int count) { return PVR_ERROR_NOT_IMPLEMENTED; }
@@ -852,11 +877,9 @@ PVR_ERROR UpdateTimer(const PVR_TIMER &timer) { return PVR_ERROR_NOT_IMPLEMENTED
 void DemuxAbort(void) {}
 DemuxPacket* DemuxRead(void) { return NULL; }
 unsigned int GetChannelSwitchDelay(void) { return 0; }
-void PauseStream(bool bPaused) {}
-bool CanPauseStream(void) { return false; }
-bool CanSeekStream(void) { return false; }
+void PauseStream(bool bPaused) { MAYBE_LOG_NYI(); } // This seemingly never actually gets called.
 bool SeekTime(double,bool,double*) { return false; }
-void SetSpeed(int) {};
+void SetSpeed(int) { MAYBE_LOG_NYI(); };
 bool IsTimeshifting(void) { return false; }
 bool IsRealTimeStream(void) { return true; }
 time_t GetPlayingTime() { return 0; }
