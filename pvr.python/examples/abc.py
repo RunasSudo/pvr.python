@@ -112,7 +112,7 @@ class ABCPVRImpl(BasePVR):
 		return 'connected'
 	
 	def GetBackendVersion(self):
-		return '0.0.2.1'
+		return '0.0.2.3'
 	
 	def GetBackendHostname(self):
 		return ''
