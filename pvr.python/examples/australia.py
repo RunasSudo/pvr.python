@@ -261,6 +261,7 @@ class ABCHelper:
 		
 		# Load the EPG pages
 		date = startTime.replace(hour=0,minute=0,second=0,microsecond=0)
+		lastEpgEndTime = None
 		while date < endTime:
 			epgUrl = 'http://epg.abctv.net.au/processed/Sydney_{}-{}-{}.json'.format(date.year, date.month, date.day)
 			
@@ -284,6 +285,10 @@ class ABCHelper:
 					for listingEntry in channelEntry['listing']:
 						epgStartTime = sydneyToLocal(datetime.datetime.strptime(listingEntry['start_time'], '%Y-%m-%dT%H:%M:%S'))
 						epgEndTime = sydneyToLocal(datetime.datetime.strptime(listingEntry['end_time'], '%Y-%m-%dT%H:%M:%S'))
+						# Close any small gaps in the schedule
+						if lastEpgEndTime is not None and epgStartTime - lastEpgEndTime < datetime.timedelta(minutes=2):
+							epgStartTime = lastEpgEndTime
+						lastEpgEndTime = epgEndTime
 						
 						if epgStartTime <= endTime and epgEndTime >= startTime:
 							# Dodgy method of generating a unique id
@@ -456,12 +461,17 @@ class SevenHelper:
 		
 		epgJson = json.load(handle)
 		
-		for programme in epgJson['schedule']:
+		for i, programme in enumerate(epgJson['schedule']):
 			epgId = 500000 + programme['content_id']
 			genre = self.getGenre(programme)
 			pStartTime = programme['start_time']
 			epgStartTime = datetime.datetime.strptime(pStartTime[:pStartTime.index('.')], '%Y-%m-%dT%H:%M:%S') + localTZ
-			epgEndTime = epgStartTime + datetime.timedelta(minutes=programme['duration'])
+			# The 'duration' tag is not always accurate, so use next programme's end time if available
+			if i + 1 < len(epgJson['schedule']):
+				p2StartTime = epgJson['schedule'][i + 1]['start_time']
+				epgEndTime = datetime.datetime.strptime(p2StartTime[:p2StartTime.index('.')], '%Y-%m-%dT%H:%M:%S') + localTZ
+			else:
+				epgEndTime = epgStartTime + datetime.timedelta(minutes=programme['duration'])
 			
 			yield EPGTag(
 				uniqueBroadcastId = epgId,
