@@ -220,8 +220,12 @@ class ABCHelper:
 					genreNos.append((0x10, 0x05))
 				elif genre == 'Sport':
 					genreNos.append((0x40, 0x00))
-				elif genre == 'Children':
+				elif genre == 'Children' or genre == 'Family':
 					genreNos.append((0x50, 0x00))
+				elif genre == 'Animation':
+					genreNos.append((0x50, 0x05))
+				elif genre == 'Entertainment':
+					genreNos.append((0x30, 0x00))
 				else:
 					genreOthers.append(genre)
 		
@@ -315,6 +319,7 @@ class ABCHelper:
 		raise PVRListDone(PVR_ERROR.NO_ERROR)
 	
 	def GetStreamOptions(self, manifestBase):
+		print 'A'
 		if self.swfhash is None:
 			# Fetch the verification swf
 			handle = urllib2.urlopen(urllib2.Request('http://iview.abc.net.au/assets/swf/CineramaWrapper_Acc_022.swf?version=0.2', headers={'User-Agent': USER_AGENT}))
@@ -327,10 +332,12 @@ class ABCHelper:
 			hashf.update(data)
 			self.swfhash = base64.b64encode(hashf.digest()).decode('ascii')
 		
+		print 'B'
 		# Get token
 		handle = urllib2.urlopen(urllib2.Request('http://iview.abc.net.au/auth/flash/?1', headers={'User-Agent': USER_AGENT}))
 		tokenhd = re.search('<tokenhd>(.*)</tokenhd>', handle.read().decode('utf-8')).group(1)
 		
+		print 'C'
 		# Get manifest
 		manifestUrl = manifestBase + '?' + urllib.urlencode({'hdcore': 'true', 'hdnea': tokenhd})
 		handle = urllib2.urlopen(urllib2.Request(manifestUrl, headers={'User-Agent': USER_AGENT}))
@@ -343,11 +350,12 @@ class ABCHelper:
 		
 		return ['--manifest', manifestUrl, '--auth', urllib.urlencode({'pvtoken': pvtoken, 'hdcore': '2.11.3', 'hdntl': hdntl[6:]}), '--useragent', USER_AGENT, '--play']
 	
-	def OpenLiveStream(channel):
+	def OpenLiveStream(self, channel):
 		try:
-			cmd = ['php', os.path.join(pvrImpl.clientPath, 'examples', 'AdobeHDS.php')] + self.GetStreamOptions('http://abctvlivehds-lh.akamaihd.net/z/{}/manifest.f4m'.format(channel._data['hdsId']))
+			cmd = ['php', os.path.join(self.pvrImpl.clientPath, 'examples', 'AdobeHDS.php')] + self.GetStreamOptions('http://abctvlivehds-lh.akamaihd.net/z/{}/manifest.f4m'.format(channel._data['hdsId']))
 			
-			pvrImpl.streamProc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
+			print 'D'
+			self.pvrImpl.streamProc = subprocess.Popen(cmd, stdout=subprocess.PIPE)
 			
 			return True
 		except:
@@ -407,19 +415,21 @@ class SevenHelper:
 			genreNos.append((0x20, 0x00))
 		elif genre == 'OTHER DRAMA SERIES' or genre == 'DRAMA MOVIE' or genre == 'OTHER MOVIE' or genre == 'DRAMA SERIAL':
 			genreNos.append((0x10, 0x00))
-		elif genre == 'COMEDY MOVIE' or genre == 'SITUATION COMEDY' or genre == 'SKETCH COMEDY':
+		elif genre == 'COMEDY MOVIE' or genre == 'SITUATION COMEDY' or genre == 'SKETCH COMEDY' or genre == 'OTHER COMEDY':
 			genreNos.append((0x10, 0x04))
+		elif genre == 'FANTASY SERIES':
+			genreNos.append((0x10, 0x03))
 		elif genre == 'THRILLER MOVIE':
 			genreNos.append((0x10, 0x01))
-		elif genre == 'SITUATIONAL COMEDY':
-			genreNos.append((0x10, 0x03))
 		elif genre == 'ANIMALS':
 			genreNos.append((0x90, 0x01))
 		elif genre == 'RELIGIOUS PROGRAMS':
 			genreNos.append((0x70, 0x03))
 		elif genre == 'HEALTH':
 			genreNos.append((0xA0, 0x04))
-		elif genre == 'CHILDREN\'S ANIMATED' or genre == 'OTHER CHILDREN\'S PROGRAM':
+		elif genre == 'CHILDREN\'S ANIMATED' or genre == 'CHILDREN\'S CARTOONS':
+			genreNos.append((0x50, 0x05))
+		elif genre == 'FAMILY' or genre == 'OTHER CHILDREN\'S PROGRAM' or genre == 'CHILDREN\'S DRAMA' or genre == 'FAMILY MOVIE':
 			genreNos.append((0x50, 0x00))
 		elif genre == 'PRE-SCHOOL PROGRAM':
 			genreNos.append((0x50, 0x01))
@@ -433,10 +443,22 @@ class SevenHelper:
 			genreNos.append((0xA0, 0x01))
 		elif genre == 'OTHER PROGRAM':
 			genreNos.append((0x00, 0x00))
-		elif genre == 'SPORTS OTHER':
+		elif genre == 'SPORTS OTHER' or genre == 'OTHER SPORT' or genre == 'SPORTS DOCUMENTARY':
 			genreNos.append((0x40, 0x00))
+		elif genre == 'INFOMERCIAL':
+			genreNos.append((0xA0, 0x06))
 		elif genre == 'MUSIC PERFORMANCE':
 			genreNos.append((0x60, 0x00))
+		elif genre == 'SCIENCE & TECHNOLOGY':
+			genreNos.append((0x90, 0x02))
+		elif genre == 'REALITY SERIES' or genre == 'OTHER REALITY TELEVISION' or genre == 'OTHER LIGHT ENTERTAINMENT':
+			genreNos.append((0x30, 0x00))
+		elif genre == 'ADVENTURE MOVIE':
+			genreNos.append((0x10, 0x02))
+		elif genre == 'MYSTERY MOVIE':
+			genreNos.append((0x10, 0x01))
+		elif genre == 'HISTORICAL SERIES':
+			genreNos.append((0x10, 0x07))
 		else:
 			genreOthers.append(genre.title())
 		
@@ -466,7 +488,7 @@ class SevenHelper:
 			genre = self.getGenre(programme)
 			pStartTime = programme['start_time']
 			epgStartTime = datetime.datetime.strptime(pStartTime[:pStartTime.index('.')], '%Y-%m-%dT%H:%M:%S') + localTZ
-			# The 'duration' tag is not always accurate, so use next programme's end time if available
+			# The 'duration' tag is not always accurate, so use next programme's start time if available
 			if i + 1 < len(epgJson['schedule']):
 				p2StartTime = epgJson['schedule'][i + 1]['start_time']
 				epgEndTime = datetime.datetime.strptime(p2StartTime[:p2StartTime.index('.')], '%Y-%m-%dT%H:%M:%S') + localTZ
