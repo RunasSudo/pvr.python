@@ -2,8 +2,10 @@
 
 import xbmc
 
-import time
+monitor = xbmc.Monitor()
 
-while not xbmc.abortRequested:
+while not monitor.abortRequested():
 	#print 'Hello from pvr.python noop script'
-	time.sleep(5)
+	if monitor.waitForAbort(5):
+		# Abort was requested while waiting.
+		break
