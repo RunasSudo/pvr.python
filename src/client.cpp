@@ -23,6 +23,9 @@
 #include "xbmc_pvr_dll.h"
 #include <p8-platform/util/util.h>
 
+#include <thread>
+#include <mutex>
+
 using namespace std;
 using namespace ADDON;
 
@@ -33,12 +36,17 @@ PyThreadState* pyState;
 PyObject* pvrImpl;
 void* streamHandle;
 
+std::mutex pythonMutex;
+
 ADDON_HANDLE addon_handle;
 
 extern "C" {
 
-#define MAYBE_LOG_CALL() XBMC->Log(LOG_DEBUG, "%s - Called", __FUNCTION__);
+#define MAYBE_LOG_CALL() XBMC->Log(LOG_DEBUG, "%s - Called in thread %d", __FUNCTION__, this_thread::get_id());
 #define MAYBE_LOG_NYI() XBMC->Log(LOG_DEBUG, "%s - NYI", __FUNCTION__);
+#define MAYBE_LOG_ACQUIRING() do {} while(0)
+#define MAYBE_LOG_ACQUIRED() do {} while(0)
+#define MAYBE_LOG_RELEASED() do {} while(0)
 
 #define PYTHON_LOCK() PyEval_AcquireLock(); PyThreadState_Swap(pyState);
 #define PYTHON_UNLOCK() PyThreadState_Swap(NULL); PyEval_ReleaseLock();
@@ -62,7 +70,8 @@ bool PyBool_AsBool_DR(PyObject* obj) {
 }
 
 char* PyString_SafeAsString(PyObject* obj) {
-	char* cString;
+	const char* cString;
+	PyObject* pyString = NULL;
 	if (PyUnicode_Check(obj)) {
 		// Encode the Unicode as UTF-8 if necessary
 		PyObject* pyString = PyUnicode_AsEncodedString(obj, "utf-8", "ignore");
@@ -103,7 +112,7 @@ PyObject* pyCall(PyObject* obj, const char* func, PyObject* args) {
 		pyArgs = PyTuple_New(0);
 	}
 	PyObject* pyReturnValue = PyObject_CallObject(pyFunc, pyArgs);
-	if (PyErr_Occurred() != NULL) { PyErr_Print(); PyErr_Clear(); Py_INCREF(Py_None); PYTHON_UNLOCK(); return Py_None; }
+	if (PyErr_Occurred() != NULL) { PyErr_Print(); PyErr_Clear(); Py_INCREF(Py_None); return Py_None; }
 	if (args == NULL) {
 		Py_DECREF(pyArgs);
 	}
@@ -114,9 +123,14 @@ PyObject* pyCall(PyObject* obj, const char* func, PyObject* args) {
 
 // You must Py_DECREF the return value once you're done!
 PyObject* pyLockCall(PyObject* obj, const char* func, PyObject* args) {
-	PYTHON_LOCK();
+	//PYTHON_LOCK
+	MAYBE_LOG_ACQUIRING(); unique_lock<mutex> pythonLock(pythonMutex); PyEval_AcquireLock(); PyThreadState_Swap(pyState); MAYBE_LOG_ACQUIRED();
+	
 	PyObject* pyReturnValue = pyCall(obj, func, args);
-	PYTHON_UNLOCK();
+	
+	//PYTHON_UNLOCK
+	PyThreadState_Swap(NULL); PyEval_ReleaseLock(); pythonLock.unlock(); MAYBE_LOG_RELEASED();
+	
 	return pyReturnValue;
 }
 
@@ -128,9 +142,14 @@ char* pyCallString(PyObject* obj, const char* func, PyObject* args) {
 }
 
 char* pyLockCallString(PyObject* obj, const char* func, PyObject* args) {
-	PYTHON_LOCK();
+	//PYTHON_LOCK
+	MAYBE_LOG_ACQUIRING(); unique_lock<mutex> pythonLock(pythonMutex); PyEval_AcquireLock(); PyThreadState_Swap(pyState); MAYBE_LOG_ACQUIRED();
+	
 	char* returnValue = pyCallString(obj, func, args);
-	PYTHON_UNLOCK();
+	
+	//PYTHON_UNLOCK
+	PyThreadState_Swap(NULL); PyEval_ReleaseLock(); pythonLock.unlock(); MAYBE_LOG_RELEASED();
+	
 	return returnValue;
 }
 
@@ -142,16 +161,26 @@ int pyCallInt(PyObject* obj, const char* func, PyObject* args) {
 }
 
 int pyLockCallInt(PyObject* obj, const char* func, PyObject* args) {
-	PYTHON_LOCK();
+	//PYTHON_LOCK
+	MAYBE_LOG_ACQUIRING(); unique_lock<mutex> pythonLock(pythonMutex); PyEval_AcquireLock(); PyThreadState_Swap(pyState); MAYBE_LOG_ACQUIRED();
+	
 	int returnValue = pyCallInt(obj, func, args);
-	PYTHON_UNLOCK();
+	
+	//PYTHON_UNLOCK
+	PyThreadState_Swap(NULL); PyEval_ReleaseLock(); pythonLock.unlock(); MAYBE_LOG_RELEASED();
+	
 	return returnValue;
 }
 
 PVR_ERROR pyLockCallPVRError(PyObject* obj, const char* func, PyObject* args) {
-	PYTHON_LOCK();
+	//PYTHON_LOCK
+	MAYBE_LOG_ACQUIRING(); unique_lock<mutex> pythonLock(pythonMutex); PyEval_AcquireLock(); PyThreadState_Swap(pyState); MAYBE_LOG_ACQUIRED();
+	
 	int returnValue = pyCallInt(obj, func, args);
-	PYTHON_UNLOCK();
+	
+	//PYTHON_UNLOCK
+	PyThreadState_Swap(NULL); PyEval_ReleaseLock(); pythonLock.unlock(); MAYBE_LOG_RELEASED();
+	
 	return ((PVR_ERROR) returnValue);
 }
 
@@ -163,9 +192,14 @@ bool pyCallBool(PyObject* obj, const char* func, PyObject* args) {
 }
 
 bool pyLockCallBool(PyObject* obj, const char* func, PyObject* args) {
-	PYTHON_LOCK();
+	//PYTHON_LOCK
+	MAYBE_LOG_ACQUIRING(); unique_lock<mutex> pythonLock(pythonMutex); PyEval_AcquireLock(); PyThreadState_Swap(pyState); MAYBE_LOG_ACQUIRED();
+	
 	bool returnValue = pyCallBool(obj, func, args);
-	PYTHON_UNLOCK();
+	
+	//PYTHON_UNLOCK
+	PyThreadState_Swap(NULL); PyEval_ReleaseLock(); pythonLock.unlock(); MAYBE_LOG_RELEASED();
+	
 	return returnValue;
 }
 
@@ -406,6 +440,7 @@ ADDON_STATUS ADDON_Create(void* hdl, void* props)
 	
 	XBMC->Log(LOG_DEBUG, "%s - Creating the PVR demo add-on", __FUNCTION__);
 	
+	PyEval_InitThreads();
 	PyEval_AcquireLock();
 	pyState = Py_NewInterpreter();
 	PyThreadState_Swap(pyState);
@@ -516,7 +551,8 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 {
 	MAYBE_LOG_CALL();
 	
-	PYTHON_LOCK();
+	//PYTHON_LOCK
+	MAYBE_LOG_ACQUIRING(); unique_lock<mutex> pythonLock(pythonMutex); PyEval_AcquireLock(); PyThreadState_Swap(pyState); MAYBE_LOG_ACQUIRED();
 	
 	PyObject* pyFunc = PyObject_GetAttrString(pvrImpl, "GetAddonCapabilities");
 	PyObject* pyArgs = PyTuple_New(0);
@@ -545,7 +581,8 @@ PVR_ERROR GetAddonCapabilities(PVR_ADDON_CAPABILITIES* pCapabilities)
 	Py_DECREF(pyArgs);
 	Py_DECREF(pyFunc);
 	
-	PYTHON_UNLOCK();
+	//PYTHON_UNLOCK
+	PyThreadState_Swap(NULL); PyEval_ReleaseLock(); pythonLock.unlock(); MAYBE_LOG_RELEASED();
 	
 	return ((PVR_ERROR) errorCode);
 }
@@ -627,7 +664,8 @@ PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
 {
 	MAYBE_LOG_CALL();
 	
-	PYTHON_LOCK();
+	//PYTHON_LOCK
+	MAYBE_LOG_ACQUIRING(); unique_lock<mutex> pythonLock(pythonMutex); PyEval_AcquireLock(); PyThreadState_Swap(pyState); MAYBE_LOG_ACQUIRED();
 	
 	PyObject* pyFunc = PyObject_GetAttrString(pvrImpl, "GetDriveSpace");
 	PyObject* pyArgs = PyTuple_New(0);
@@ -640,7 +678,8 @@ PVR_ERROR GetDriveSpace(long long *iTotal, long long *iUsed)
 	Py_DECREF(pyArgs);
 	Py_DECREF(pyFunc);
 	
-	PYTHON_UNLOCK();
+	//PYTHON_UNLOCK
+	PyThreadState_Swap(NULL); PyEval_ReleaseLock(); pythonLock.unlock(); MAYBE_LOG_RELEASED();
 	
 	return ((PVR_ERROR) errorCode);
 }
@@ -719,7 +758,8 @@ bool OpenLiveStream(const PVR_CHANNEL &channel)
 	
 	CloseLiveStream();
 	
-	PYTHON_LOCK();
+	//PYTHON_LOCK
+	MAYBE_LOG_ACQUIRING(); unique_lock<mutex> pythonLock(pythonMutex); PyEval_AcquireLock(); PyThreadState_Swap(pyState); MAYBE_LOG_ACQUIRED();
 	
 	PyObject* pyFunc = PyObject_GetAttrString(pvrImpl, "OpenLiveStream");
 	PyObject* pyArgs = Py_BuildValue("(i)", channel.iUniqueId);
@@ -754,7 +794,8 @@ bool OpenLiveStream(const PVR_CHANNEL &channel)
 	Py_DECREF(pyArgs);
 	Py_DECREF(pyFunc);
 	
-	PYTHON_UNLOCK();
+	//PYTHON_UNLOCK
+	PyThreadState_Swap(NULL); PyEval_ReleaseLock(); pythonLock.unlock(); MAYBE_LOG_RELEASED();
 	
 	return returnValue;
 }
@@ -763,19 +804,23 @@ int ReadLiveStream(unsigned char *pBuffer, unsigned int iBufferSize) {
 	//MAYBE_LOG_CALL(); // This gets called a lot.
 	
 	if (!streamHandle) {
-		PYTHON_LOCK();
+		//PYTHON_LOCK
+		//MAYBE_LOG_ACQUIRING(); unique_lock<mutex> pythonLock(pythonMutex); PyEval_AcquireLock(); PyThreadState_Swap(pyState); MAYBE_LOG_ACQUIRED();
+		unique_lock<mutex> pythonLock(pythonMutex); PyEval_AcquireLock(); PyThreadState_Swap(pyState);
 		
 		PyObject* pyReturnValue = pyCall(pvrImpl, "ReadLiveStream", Py_BuildValue("(i)", iBufferSize));
 		int bytesRead = PyInt_AsLong(PyTuple_GetItem(pyReturnValue, 0));
 		
 		if (bytesRead > 0) {
-			char* contents = PyString_SafeAsString(PyTuple_GetItem(pyReturnValue, 1));
+			char* contents = PyString_AsString(PyTuple_GetItem(pyReturnValue, 1));
 			memcpy(pBuffer, contents, bytesRead);
 		}
 		
 		Py_DECREF(pyReturnValue);
 		
-		PYTHON_UNLOCK();
+		//PYTHON_UNLOCK
+		//PyThreadState_Swap(NULL); PyEval_ReleaseLock(); pythonLock.unlock(); MAYBE_LOG_RELEASED();
+		PyThreadState_Swap(NULL); PyEval_ReleaseLock(); pythonLock.unlock();
 		
 		return bytesRead;
 	} else {
