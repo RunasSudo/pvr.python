@@ -64,10 +64,15 @@ bool PyBool_AsBool_DR(PyObject* obj) {
 char* PyString_SafeAsString(PyObject* obj) {
 	char* cString;
 	if (PyUnicode_Check(obj)) {
-		// Encode the Unicode as ASCII if necessary
-		PyObject* pyString = PyUnicode_AsEncodedString(obj, "ascii", "ignore");
+		// Encode the Unicode as UTF-8 if necessary
+		PyObject* pyString = PyUnicode_AsEncodedString(obj, "utf-8", "ignore");
 		cString = PyString_AsString(pyString);
-		Py_DECREF(pyString);
+		if (cString == NULL) {
+			//XBMC->Log(LOG_DEBUG, "%s - String was NULL", __FUNCTION__);
+			cString = "";
+		} else {
+			//XBMC->Log(LOG_DEBUG, "%s - String was %s", __FUNCTION__, cString);
+		}
 	} else {
 		cString = PyString_AsString(obj);
 	}
@@ -75,6 +80,11 @@ char* PyString_SafeAsString(PyObject* obj) {
 	// Copy the string
 	char* cString2 = (char*) malloc(strlen(cString) + 1); // +1 for the NUL
 	strcpy(cString2, cString);
+	
+	// Don't do this until we've copied the string!
+	if (pyString != NULL) {
+		Py_DECREF(pyString);
+	}
 	
 	return cString2;
 }
